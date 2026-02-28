@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Home - Binary Project System{% endblock %}
+
+{% block content %}
+<section class="landing-hero">
+    <div style="max-width:1100px; margin:0 auto; padding:2rem 2rem; display:flex; align-items:center; gap:4rem; width:100%;">
+
+        <!-- Left -->
+        <div style="flex:1;">
+            <div class="binary-logo" style="margin-bottom:1.5rem;">
+                <div>0110</div>
+                <div>1001</div>
+                <div>1010</div>
+            </div>
+
+            <h1 style="font-family:'DM Serif Display',serif; font-size:3rem; color:var(--text-dark); letter-spacing:-0.04em; line-height:1.15; margin-bottom:1.2rem;">
+                Binary Project<br><span style="color:var(--green-primary);">Submission</span> System
+            </h1>
+
+            <p style="font-size:1.05rem; color:var(--text-muted); line-height:1.7; margin-bottom:2rem; max-width:480px;">
+                Submit, track, and manage academic projects with built-in duplicate detection and collaboration tools.
+            </p>
+
+            <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+                <a href="{{ url_for('register') }}" class="btn-oc btn-oc-primary" style="padding:0.7rem 1.8rem; font-size:0.95rem;">
+                    Get Started
+                </a>
+                <a href="{{ url_for('login') }}" class="btn-oc btn-oc-outline" style="padding:0.7rem 1.8rem; font-size:0.95rem;">
+                    Sign In
+                </a>
+            </div>
+
+            <!-- Feature pills -->
+            <div style="display:flex; flex-wrap:wrap; gap:0.6rem; margin-top:2.5rem;">
+                {% for feat in ['AI Duplicate Detection','Real-time Review','Secure Submissions','Team Collaboration'] %}
+                <span style="background:var(--white); border:1px solid var(--border); border-radius:8px; padding:0.35rem 0.85rem; font-size:0.8rem; color:var(--text-muted); display:flex; align-items:center; gap:5px;">
+                    <span style="color:var(--green-primary);">✓</span> {{ feat }}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Right: stat cards -->
+        <div style="flex:1; display:none;" class="landing-side-cards">
+            <div style="display:flex; flex-direction:column; gap:1rem; max-width:340px;">
+                <div class="oc-card" style="padding:1.2rem 1.4rem;">
+                    <div style="font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.7rem;">Platform Stats</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                        {% for stat in [('12k+','Projects Verified'),('98.6%','Detection Accuracy'),('< 2s','Avg Scan Time'),('4 Streams','Active Tracks')] %}
+                        <div>
+                            <div style="font-family:'DM Serif Display',serif; font-size:1.4rem; color:var(--text-dark);">{{ stat[0] }}</div>
+                            <div style="font-size:0.78rem; color:var(--text-muted);">{{ stat[1] }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="oc-card" style="padding:1.2rem 1.4rem;">
+                    <div style="font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.8rem;">Recent Activity</div>
+                    {% for item in [('Project Submitted','2 min ago','green'),('Duplicate Warning','15 min ago','red'),('Project Approved','1 hr ago','green')] %}
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:0.6rem;">
+                        <div style="width:8px; height:8px; border-radius:50%; background:{% if item[2]=='green' %}var(--green-primary){% else %}#e53e3e{% endif %}; flex-shrink:0;"></div>
+                        <div style="flex:1; font-size:0.83rem; color:var(--text-dark);">{{ item[0] }}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">{{ item[1] }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<style>
+@media(min-width:900px){ .landing-side-cards { display:block !important; } }
+</style>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Binary Project System{% endblock %}
+
+{% block content %}
+<div style="max-width:1200px;margin:0 auto;padding:2rem 1.5rem;">
+
+    <!-- Page Header -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.8rem;flex-wrap:wrap;gap:1rem;">
+        <div>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">Welcome back, {{ user.full_name }}!</p>
+        </div>
+        <a href="{{ url_for('new_project') }}" class="btn-oc btn-oc-primary">
+            <i class="bi bi-plus-lg"></i> New Project
+        </a>
+    </div>
+
+    <!-- Stat Cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem;margin-bottom:2rem;">
+        {% for stat in [
+            ('📊', total_projects, 'Total Projects'),
+            ('✅', approved_projects, 'Approved'),
+            ('⏳', pending_projects, 'Pending'),
+            ('🎓', total_streams, 'Streams')
+        ] %}
+        <div class="stat-card">
+            <div class="stat-icon-box">{{ stat[0] }}</div>
+            <div>
+                <div class="stat-value">{{ stat[1] }}</div>
+                <div class="stat-label">{{ stat[2] }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Two-col content -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+
+        <!-- Your Projects -->
+        <div class="oc-card">
+            <div class="oc-card-header">
+                <h2 class="oc-card-title">Your Projects</h2>
+                <a href="{{ url_for('new_project') }}" class="btn-oc btn-oc-outline btn-oc-sm">
+                    <i class="bi bi-plus-lg"></i> New
+                </a>
+            </div>
+            {% if user_projects %}
+                {% for project in user_projects %}
+                <a href="{{ url_for('project_detail', project_id=project.id) }}" class="oc-list-item">
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;font-size:0.92rem;margin-bottom:0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ project.title }}</div>
+                        <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            {{ project.description[:90] }}{% if project.description|length > 90 %}...{% endif %}
+                        </div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);">
+                            <i class="bi bi-calendar"></i> {{ project.submitted_at|timeago }}
+                        </div>
+                    </div>
+                    <span class="oc-badge badge-{{ project.status.value }}">{{ project.status.value|title }}</span>
+                </a>
+                {% endfor %}
+                <div style="padding:1rem 1.4rem;border-top:1px solid var(--border);text-align:center;">
+                    <a href="{{ url_for('projects') }}" class="btn-oc btn-oc-outline btn-oc-sm">View All Projects</a>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">📁</div>
+                    <p class="empty-title">No projects yet</p>
+                    <p class="empty-text">Get started by submitting your first project.</p>
+                    <a href="{{ url_for('new_project') }}" class="btn-oc btn-oc-primary">Create First Project</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Notifications -->
+        <div class="oc-card">
+            <div class="oc-card-header">
+                <h2 class="oc-card-title">
+                    Notifications
+                    {% if unread_notifications > 0 %}
+                    <span class="notif-badge" style="margin-left:6px;">{{ unread_notifications }}</span>
+                    {% endif %}
+                </h2>
+                <a href="{{ url_for('notifications') }}" class="btn-oc btn-oc-outline btn-oc-sm">View All</a>
+            </div>
+
+            {% if recent_projects and (user.role.value == 'admin' or user.role.value == 'reviewer') %}
+                <div style="padding:0.7rem 1.4rem;border-bottom:1px solid var(--border);">
+                    <span style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Recent Submissions</span>
+                </div>
+                {% for project in recent_projects[:5] %}
+                <a href="{{ url_for('project_detail', project_id=project.id) }}" class="oc-list-item">
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.15rem;">{{ project.title }}</div>
+                        <div style="font-size:0.78rem;color:var(--text-muted);">
+                            by {{ project.author.full_name }} · {{ project.submitted_at|timeago }}
+                        </div>
+                    </div>
+                    <span class="oc-badge badge-{{ project.status.value }}">{{ project.status.value|title }}</span>
+                </a>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">🔔</div>
+                    <p class="empty-title">All caught up</p>
+                    <p class="empty-text">No new notifications right now.</p>
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<style>
+@media(max-width:768px){
+    div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important;}
+}
+</style>
+{% endblock %}

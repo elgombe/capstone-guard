@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Server Error{% endblock %}
+
+{% block content %}
+<div style="min-height:80vh;display:flex;align-items:center;justify-content:center;padding:2rem;">
+    <div style="text-align:center;max-width:400px;">
+        <div style="font-family:'DM Serif Display',serif;font-size:6rem;color:#e53e3e;line-height:1;margin-bottom:0.5rem;letter-spacing:-0.05em;">500</div>
+        <h2 style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--text-dark);margin-bottom:0.6rem;">Server Error</h2>
+        <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:2rem;line-height:1.6;">
+            Something went wrong on our end. Please try again later — we're on it.
+        </p>
+        <a href="{{ url_for('dashboard') if session.user_id else url_for('index') }}" class="btn-oc btn-oc-primary" style="padding:0.7rem 2rem;">
+            Go Home
+        </a>
+    </div>
+</div>
+{% endblock %}

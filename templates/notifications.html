@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Notifications - Binary Project System{% endblock %}
+
+{% block content %}
+<div style="max-width:720px;margin:0 auto;padding:2rem 1.5rem;">
+
+    <div class="page-header">
+        <h1 class="page-title">Notifications</h1>
+        <p class="page-subtitle">Updates on your projects and activity.</p>
+    </div>
+
+    <div class="oc-card">
+        {% if notifications %}
+            {% for notification in notifications %}
+            <div class="notif-item {% if not notification.is_read %}unread{% endif %}">
+                <!-- Icon -->
+                <div class="notif-dot {% if not notification.is_read %}red{% else %}green{% endif %}">
+                    <i class="bi bi-{% if not notification.is_read %}bell-fill{% else %}check-circle{% endif %}"></i>
+                </div>
+
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.25rem;">
+                        <h6 style="font-weight:700;font-size:0.92rem;color:var(--text-dark);margin:0;">{{ notification.title }}</h6>
+                        <span style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;">{{ notification.created_at|timeago }}</span>
+                    </div>
+                    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.5rem;line-height:1.5;">{{ notification.message }}</p>
+                    <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+                        {% if notification.related_project_id %}
+                        <a href="{{ url_for('project_detail', project_id=notification.related_project_id) }}" class="btn-oc btn-oc-primary btn-oc-sm">
+                            View Project
+                        </a>
+                        {% endif %}
+                        {% if not notification.is_read %}
+                        <button class="btn-oc btn-oc-outline btn-oc-sm" onclick="markAsRead({{ notification.id }})">
+                            Mark as Read
+                        </button>
+                        {% else %}
+                        <span class="oc-badge badge-secondary">Read</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🔔</div>
+                <p class="empty-title">No Notifications</p>
+                <p class="empty-text">You're all caught up — nothing new right now.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

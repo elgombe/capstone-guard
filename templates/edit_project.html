@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Edit Project - Binary Project System{% endblock %}
+
+{% block content %}
+<div style="max-width:780px;margin:0 auto;padding:2rem 1.5rem;">
+
+    <div class="page-header">
+        <h1 class="page-title">Edit Project</h1>
+        <p class="page-subtitle">Update your project details below.</p>
+    </div>
+
+    <div class="oc-card">
+        <div class="oc-card-body" style="padding:2rem;">
+            <form method="POST" action="{{ url_for('edit_project', project_id=project.id) }}">
+
+                <div class="field">
+                    <label class="oc-label" for="title">Project Title <span style="color:#e53e3e;">*</span></label>
+                    <input type="text" class="oc-input oc-input-lg" id="title" name="title" value="{{ project.title }}" required>
+                </div>
+
+                <div class="field" style="margin-top:1rem;">
+                    <label class="oc-label" for="description">Project Description <span style="color:#e53e3e;">*</span></label>
+                    <textarea class="oc-textarea" id="description" name="description" rows="7" required>{{ project.description }}</textarea>
+                </div>
+
+                <div class="field" style="margin-top:1rem;">
+                    <label class="oc-label" for="technologies">Technologies Used</label>
+                    <input type="text" class="oc-input" id="technologies" name="technologies" value="{{ project.technologies or '' }}">
+                </div>
+
+                <div class="field" style="margin-top:1rem;">
+                    <label class="oc-label" for="github_url">GitHub Repository URL</label>
+                    <input type="url" class="oc-input" id="github_url" name="github_url" value="{{ project.github_url or '' }}">
+                </div>
+
+                <div class="field" style="margin-top:1rem;">
+                    <label class="oc-label" for="demo_url">Demo / Live URL</label>
+                    <input type="url" class="oc-input" id="demo_url" name="demo_url" value="{{ project.demo_url or '' }}">
+                </div>
+
+                <div style="display:flex;gap:0.75rem;margin-top:1.8rem;padding-top:1.2rem;border-top:1px solid var(--border);">
+                    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn-oc btn-oc-outline">Cancel</a>
+                    <button type="submit" class="btn-oc btn-oc-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

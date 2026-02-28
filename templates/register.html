@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Create Account - Binary Project System{% endblock %}
+
+{% block content %}
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem 1.5rem;background:var(--bg);">
+    <div style="width:100%;max-width:460px;">
+
+        <!-- Brand -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:2rem;justify-content:center;">
+            <div class="brand-icon">
+                <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"/>
+                    <path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <span style="font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--text-dark);">OriginCheck</span>
+        </div>
+
+        <div class="oc-card" style="padding:2.2rem 2.4rem;">
+            <h2 style="font-family:'DM Serif Display',serif;font-size:1.8rem;color:var(--text-dark);letter-spacing:-0.03em;margin-bottom:0.3rem;">Create Account</h2>
+            <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:1.8rem;">Join the Binary Project System</p>
+
+            <form method="POST" action="{{ url_for('register') }}">
+                <div class="field">
+                    <label class="oc-label">Full Name</label>
+                    <input type="text" class="oc-input" name="full_name" id="full_name" required placeholder="Jane Doe">
+                </div>
+
+                <div class="field" style="margin-top:1rem;">
+                    <label class="oc-label">Email Address</label>
+                    <input type="email" class="oc-input" name="email" id="email" required placeholder="jane@example.com">
+                </div>
+
+                <div class="field" style="margin-top:1rem;">
+                    <label class="oc-label">Password</label>
+                    <input type="password" class="oc-input" name="password" id="password" required minlength="6" placeholder="Min. 6 characters">
+                    <p class="oc-help">At least 6 characters</p>
+                </div>
+
+                <button type="submit" class="btn-oc btn-oc-primary" style="width:100%;justify-content:center;padding:0.72rem;font-size:0.95rem;margin-top:1.5rem;">
+                    Create Account
+                </button>
+            </form>
+
+            <p style="text-align:center;font-size:0.84rem;color:var(--text-muted);margin-top:1.5rem;">
+                Already have an account?
+                <a href="{{ url_for('login') }}" style="color:var(--green-primary);font-weight:600;">Sign In</a>
+            </p>
+        </div>
+
+        <p style="text-align:center;font-size:0.76rem;color:var(--text-muted);margin-top:1.2rem;">
+            <a href="#" style="color:var(--text-muted);">Privacy Policy</a> &nbsp;·&nbsp; <a href="#" style="color:var(--text-muted);">Terms of Use</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+<div class="warning-box" style="margin-top:1rem;">
+    <div class="warning-box-header">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        Similar Projects Found!
+    </div>
+    <div class="warning-box-body">
+        <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:1rem;">
+            We found <strong>{{ similar_count }}</strong> similar project(s) in our database.
+            Please review them to ensure your project offers something unique.
+        </p>
+
+        {% for similar in similar_projects %}
+        <div class="oc-card" style="margin-bottom:0.6rem;">
+            <div class="oc-card-body" style="padding:0.9rem 1.1rem;">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;margin-bottom:0.3rem;flex-wrap:wrap;">
+                    <h6 style="font-weight:700;font-size:0.88rem;color:var(--text-dark);margin:0;">{{ similar.project.title }}</h6>
+                    <div style="display:flex;gap:0.4rem;flex-shrink:0;">
+                        <span class="oc-badge badge-info" title="Title Similarity">T: {{ (similar.title_similarity * 100)|round|int }}%</span>
+                        <span class="oc-badge badge-info" title="Description Similarity">D: {{ (similar.description_similarity * 100)|round|int }}%</span>
+                    </div>
+                </div>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">
+                    by {{ similar.project.author.full_name }} · {{ similar.project.stream.name }}
+                </p>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if similar_count > 3 %}
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.5rem;margin-bottom:0;">
+            <i class="bi bi-info-circle"></i> Showing top 3 of {{ similar_count }} similar projects
+        </p>
+        {% endif %}
+    </div>
+</div>
