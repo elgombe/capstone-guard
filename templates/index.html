@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Home - Binary Project System{% endblock %}
+{% block title %}CapstoneGuard{% endblock %}
 
 {% block content %}
 <section class="landing-hero">
@@ -14,7 +14,7 @@
             </div>
 
             <h1 style="font-family:'DM Serif Display',serif; font-size:3rem; color:var(--text-dark); letter-spacing:-0.04em; line-height:1.15; margin-bottom:1.2rem;">
-                Binary Project<br><span style="color:var(--green-primary);">Submission</span> System
+                CapstoneGuard<br>
             </h1>
 
             <p style="font-size:1.05rem; color:var(--text-muted); line-height:1.7; margin-bottom:2rem; max-width:480px;">
@@ -22,10 +22,10 @@
             </p>
 
             <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
-                <a href="{{ url_for('register') }}" class="btn-oc btn-oc-primary" style="padding:0.7rem 1.8rem; font-size:0.95rem;">
+                <a href="{{ url_for('auth.register') }}" class="btn-oc btn-oc-primary" style="padding:0.7rem 1.8rem; font-size:0.95rem;">
                     Get Started
                 </a>
-                <a href="{{ url_for('login') }}" class="btn-oc btn-oc-outline" style="padding:0.7rem 1.8rem; font-size:0.95rem;">
+                <a href="{{ url_for('auth.login') }}" class="btn-oc btn-oc-outline" style="padding:0.7rem 1.8rem; font-size:0.95rem;">
                     Sign In
                 </a>
             </div>

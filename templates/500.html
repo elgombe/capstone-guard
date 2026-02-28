@@ -9,7 +9,7 @@
         <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:2rem;line-height:1.6;">
             Something went wrong on our end. Please try again later — we're on it.
         </p>
-        <a href="{{ url_for('dashboard') if session.user_id else url_for('index') }}" class="btn-oc btn-oc-primary" style="padding:0.7rem 2rem;">
+        <a href="{{ url_for('dashboard.dashboard') if session.user_id else url_for('index.index') }}" class="btn-oc btn-oc-primary" style="padding:0.7rem 2rem;">
             Go Home
         </a>
     </div>

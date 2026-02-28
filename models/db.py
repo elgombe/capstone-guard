@@ -502,8 +502,8 @@ def init_db(app):
         # Create default streams if not exists
         if Stream.query.count() == 0:
             streams = [
-                Stream(name='2024 Stream A', year=2024, semester='Spring', is_active=True),
-                Stream(name='2024 Stream B', year=2024, semester='Fall', is_active=True),
+                Stream(name='2026 Stream A', year=2026, semester='Spring', is_active=True),
+                Stream(name='2026 Stream B', year=2026, semester='Fall', is_active=True),
                 Stream(name='2023 Stream A', year=2023, semester='Spring', is_active=False),
                 Stream(name='2023 Stream B', year=2023, semester='Fall', is_active=False),
             ]

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Binary Project System{% endblock %}</title>
+    <title>{% block title %}CapstoneGuard{% endblock %}</title>
 
     <!-- Bulma CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css">
@@ -586,32 +586,32 @@
     <!-- ── NAVBAR ── -->
     {% if session.user_id %}
     <nav class="app-navbar">
-        <a class="brand" href="{{ url_for('dashboard') }}">
+        <a class="brand" href="{{ url_for('dashboard.dashboard') }}">
             <div class="brand-icon">
                 <svg width="16" height="16" fill="none" stroke-width="2.2" viewBox="0 0 24 24">
                     <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"/>
                     <path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </div>
-            <span class="brand-name">OriginCheck</span>
+            <span class="brand-name">CapstoneGuard</span>
         </a>
 
         <div class="nav-spacer"></div>
 
         <div class="nav-links">
-            <a class="nav-link-item" href="{{ url_for('dashboard') }}">
+            <a class="nav-link-item" href="{{ url_for('dashboard.dashboard') }}">
                 <i class="bi bi-house-door"></i> Dashboard
             </a>
-            <a class="nav-link-item" href="{{ url_for('projects') }}">
+            <a class="nav-link-item" href="{{ url_for('projects.projects') }}">
                 <i class="bi bi-folder"></i> Projects
             </a>
-            <a class="nav-link-item" href="{{ url_for('notifications') }}">
+            <a class="nav-link-item" href="{{ url_for('notifications.notifications') }}">
                 <i class="bi bi-bell"></i> Notifications
                 {% if unread_count|default(0) > 0 %}
                 <span class="notif-badge">{{ unread_count }}</span>
                 {% endif %}
             </a>
-            <a class="nav-btn-primary" href="{{ url_for('new_project') }}">
+            <a class="nav-btn-primary" href="{{ url_for('projects.new_project') }}">
                 <i class="bi bi-plus-lg"></i> New Project
             </a>
 
@@ -625,7 +625,7 @@
                     <a class="nav-dropdown-item" href="#"><i class="bi bi-person"></i> Profile</a>
                     <a class="nav-dropdown-item" href="#"><i class="bi bi-gear"></i> Settings</a>
                     <div class="nav-dropdown-divider"></div>
-                    <a class="nav-dropdown-item" href="{{ url_for('logout') }}">
+                    <a class="nav-dropdown-item" href="{{ url_for('auth.logout') }}">
                         <i class="bi bi-box-arrow-right"></i> Logout
                     </a>
                 </div>
@@ -656,7 +656,7 @@
 
     <!-- ── FOOTER ── -->
     <footer class="app-footer">
-        Binary Project Submission System &copy; 2024 &nbsp;·&nbsp;
+        CapstoneGuard &copy; 2026 &nbsp;·&nbsp;
         <a href="#">Privacy Policy</a> &nbsp;·&nbsp; <a href="#">Terms of Use</a>
     </footer>
 

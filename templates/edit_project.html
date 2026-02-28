@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Edit Project - Binary Project System{% endblock %}
+{% block title %}Edit Project - CapstoneGuard{% endblock %}
 
 {% block content %}
 <div style="max-width:780px;margin:0 auto;padding:2rem 1.5rem;">
@@ -11,7 +11,7 @@
 
     <div class="oc-card">
         <div class="oc-card-body" style="padding:2rem;">
-            <form method="POST" action="{{ url_for('edit_project', project_id=project.id) }}">
+            <form method="POST" action="{{ url_for('projects.edit_project', project_id=project.id) }}">
 
                 <div class="field">
                     <label class="oc-label" for="title">Project Title <span style="color:#e53e3e;">*</span></label>
@@ -39,7 +39,7 @@
                 </div>
 
                 <div style="display:flex;gap:0.75rem;margin-top:1.8rem;padding-top:1.2rem;border-top:1px solid var(--border);">
-                    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn-oc btn-oc-outline">Cancel</a>
+                    <a href="{{ url_for('projects.project_detail', project_id=project.id) }}" class="btn-oc btn-oc-outline">Cancel</a>
                     <button type="submit" class="btn-oc btn-oc-primary">Save Changes</button>
                 </div>
             </form>

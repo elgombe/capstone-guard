@@ -1,4 +1,4 @@
-// Main JavaScript for Binary Project System
+// Main JavaScript for CapstoneGuard
 
 document.addEventListener('DOMContentLoaded', function() {
     // Auto-dismiss alerts after 5 seconds

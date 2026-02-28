@@ -3,7 +3,7 @@ from functools import wraps
 
 from flask import Flask, flash, redirect, render_template, session, url_for
 from difflib import SequenceMatcher
-from models.db import Project, User, db, ProjectStatus, Notification
+from models.db import Project, User, db, ProjectStatus, Notification, init_db
 from controllers.auth import auth_bp
 from controllers.index import index_bp
 from controllers.dashboard import dashboard_bp
@@ -17,6 +17,7 @@ app.register_blueprint(index_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(dashboard_bp)
 
+init_db(app)
 
 def login_required(f):
     """Decorator for routes that require login"""

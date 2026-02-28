@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Sign In - Binary Project System{% endblock %}
+{% block title %}Sign In - CapstoneGuard{% endblock %}
 
 {% block content %}
 <div class="login-split">
@@ -14,7 +14,7 @@
                 Verify project <span style="color:var(--green-primary);">originality</span> with confidence.
             </h2>
             <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.7; margin-bottom:2rem;">
-                OriginCheck uses AI-powered analysis to detect plagiarism, code similarities, and idea overlap — keeping academic work honest.
+                CapstoneGuard uses AI-powered analysis to detect plagiarism, code similarities, and idea overlap — keeping academic work honest.
             </p>
 
             <div style="display:flex; flex-wrap:wrap; gap:0.65rem;">
@@ -39,7 +39,7 @@
             <!-- top link -->
             <div style="display:flex;justify-content:flex-end;margin-bottom:2.5rem;">
                 <span style="font-size:0.85rem;color:var(--text-muted);">No account?</span>
-                <a href="{{ url_for('register') }}" class="btn-oc btn-oc-outline btn-oc-sm" style="margin-left:0.5rem;">Sign Up</a>
+                <a href="{{ url_for('auth.register') }}" class="btn-oc btn-oc-outline btn-oc-sm" style="margin-left:0.5rem;">Sign Up</a>
             </div>
 
             <!-- shield badge -->
@@ -54,7 +54,7 @@
             <h1 style="font-family:'DM Serif Display',serif;font-size:2rem;color:var(--text-dark);letter-spacing:-0.03em;margin-bottom:0.4rem;">Sign In</h1>
             <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:2rem;">Please enter your account details to continue.</p>
 
-            <form method="POST" action="{{ url_for('login') }}">
+            <form method="POST" action="{{ url_for('auth.login') }}">
                 <div class="field">
                     <label class="oc-label">Email</label>
                     <input type="email" class="oc-input oc-input-lg" name="email" id="email" required placeholder="you@example.com">
