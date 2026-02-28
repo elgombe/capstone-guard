@@ -119,7 +119,7 @@ def new_project():
         else:
             flash('Project submitted successfully!', 'success')
         
-        return redirect(url_for('project_detail', project_id=project.id))
+        return redirect(url_for('projects.project_detail', project_id=project.id))
     
     # GET request
     streams = Stream.query.filter_by(is_active=True).order_by(Stream.name).all()
@@ -170,7 +170,7 @@ def edit_project(project_id):
     # Check permissions
     if user.id != project.user_id and user.role not in [UserRole.ADMIN, UserRole.REVIEWER]:
         flash('You do not have permission to edit this project.', 'danger')
-        return redirect(url_for('project_detail', project_id=project_id))
+        return redirect(url_for('projects.project_detail', project_id=project_id))
     
     if request.method == 'POST':
         project.title = request.form.get('title')
@@ -183,7 +183,7 @@ def edit_project(project_id):
         db.session.commit()
         
         flash('Project updated successfully!', 'success')
-        return redirect(url_for('project_detail', project_id=project_id))
+        return redirect(url_for('projects.project_detail', project_id=project.id))
     
     streams = Stream.query.filter_by(is_active=True).order_by(Stream.name).all()
     return render_template('edit_project.html', project=project, streams=streams)
@@ -231,7 +231,7 @@ def update_project_status(project_id):
     except KeyError:
         flash('Invalid status.', 'danger')
     
-    return redirect(url_for('project_detail', project_id=project_id))
+    return redirect(url_for('projects.project_detail', project_id=project_id))
 
 
 @projects_bp.route('/projects/<int:project_id>/comments', methods=['POST'])
@@ -265,4 +265,4 @@ def add_comment(project_id):
         )
     
     flash('Comment added successfully!', 'success')
-    return redirect(url_for('project_detail', project_id=project_id))
+    return redirect(url_for('projects.project_detail', project_id=project_id))

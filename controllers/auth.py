@@ -22,7 +22,7 @@ def login():
             db.session.commit()
             
             flash(f'Welcome back, {user.full_name}!', 'success')
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('dashboard.dashboard'))
         else:
             flash('Invalid email or password.', 'danger')
     
@@ -53,7 +53,7 @@ def register():
         db.session.commit()
         
         flash('Registration successful! Please log in.', 'success')
-        return redirect(url_for('login'))
+        return redirect(url_for('auth.login'))
     
     return render_template('register.html')
 
@@ -62,4 +62,4 @@ def logout():
     """Logout"""
     session.clear()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('index'))
+    return redirect(url_for('index.index'))
