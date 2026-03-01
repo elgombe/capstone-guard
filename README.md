@@ -42,8 +42,8 @@
 
 **1. Clone the repository**
 ```bash
-git clone https://github.com/yourusername/capstoneguard.git
-cd capstoneguard
+git clone https://github.com/elgombe/capstone-guard.git
+cd capstone-guard
 ```
 
 **2. Create and activate a virtual environment**
