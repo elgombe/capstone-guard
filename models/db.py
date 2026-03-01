@@ -3,6 +3,8 @@ Database Models
 Using Flask-SQLAlchemy ORM
 """
 
+import os
+
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -487,16 +489,16 @@ def init_db(app):
         db.create_all()
         
         # Create default admin user if not exists
-        admin = User.query.filter_by(email='admin@binary.com').first()
+        admin = User.query.filter_by(email=os.environ.get('ADMIN_EMAIL')).first()
         if not admin:
             admin = User(
-                email='admin@binary.com',
+                email=os.environ.get('ADMIN_EMAIL'),
                 full_name='System Administrator',
                 role=UserRole.ADMIN,
                 is_active=True,
                 is_verified=True
             )
-            admin.set_password('admin123')  # Change this in production!
+            admin.set_password(os.environ.get('ADMIN_PASSWORD'))  # Change this in production!
             db.session.add(admin)
         
         # Create default streams if not exists
