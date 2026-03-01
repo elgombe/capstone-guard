@@ -17,20 +17,42 @@
 
     <!-- Stat Cards -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem;margin-bottom:2rem;">
-        {% for stat in [
-            ('📊', total_projects, 'Total Projects'),
-            ('✅', approved_projects, 'Approved'),
-            ('⏳', pending_projects, 'Pending'),
-            ('🎓', total_streams, 'Streams')
-        ] %}
         <div class="stat-card">
-            <div class="stat-icon-box">{{ stat[0] }}</div>
+            <div class="stat-icon-box">
+                <i class="bi bi-folder2-open" style="font-size:1.25rem;color:var(--green-primary);"></i>
+            </div>
             <div>
-                <div class="stat-value">{{ stat[1] }}</div>
-                <div class="stat-label">{{ stat[2] }}</div>
+                <div class="stat-value">{{ total_projects }}</div>
+                <div class="stat-label">Total Projects</div>
             </div>
         </div>
-        {% endfor %}
+        <div class="stat-card">
+            <div class="stat-icon-box" style="background:#dcfce7;">
+                <i class="bi bi-check-circle" style="font-size:1.25rem;color:#16a34a;"></i>
+            </div>
+            <div>
+                <div class="stat-value">{{ approved_projects }}</div>
+                <div class="stat-label">Approved</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon-box" style="background:#fef9c3;">
+                <i class="bi bi-hourglass-split" style="font-size:1.25rem;color:#ca8a04;"></i>
+            </div>
+            <div>
+                <div class="stat-value">{{ pending_projects }}</div>
+                <div class="stat-label">Pending</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon-box" style="background:#dbeafe;">
+                <i class="bi bi-mortarboard" style="font-size:1.25rem;color:#2563eb;"></i>
+            </div>
+            <div>
+                <div class="stat-value">{{ total_streams }}</div>
+                <div class="stat-label">Streams</div>
+            </div>
+        </div>
     </div>
 
     <!-- Two-col content -->
@@ -64,7 +86,9 @@
                 </div>
             {% else %}
                 <div class="empty-state">
-                    <div class="empty-icon">📁</div>
+                    <div class="empty-icon">
+                        <i class="bi bi-folder-plus" style="font-size:1.6rem;color:var(--green-primary);"></i>
+                    </div>
                     <p class="empty-title">No projects yet</p>
                     <p class="empty-text">Get started by submitting your first project.</p>
                     <a href="{{ url_for('projects.new_project') }}" class="btn-oc btn-oc-primary">Create First Project</a>
@@ -77,9 +101,6 @@
             <div class="oc-card-header">
                 <h2 class="oc-card-title">
                     Notifications
-                    {% if unread_notifications > 0 %}
-                    <span class="notif-badge" style="margin-left:6px;">{{ unread_notifications }}</span>
-                    {% endif %}
                 </h2>
                 <a href="{{ url_for('notifications_bp.notifications') }}" class="btn-oc btn-oc-outline btn-oc-sm">View All</a>
             </div>
@@ -101,7 +122,9 @@
                 {% endfor %}
             {% else %}
                 <div class="empty-state">
-                    <div class="empty-icon">🔔</div>
+                    <div class="empty-icon">
+                        <i class="bi bi-bell" style="font-size:1.6rem;color:var(--green-primary);"></i>
+                    </div>
                     <p class="empty-title">All caught up</p>
                     <p class="empty-text">No new notifications right now.</p>
                 </div>

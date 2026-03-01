@@ -71,7 +71,7 @@
 
 {% else %}
     <div class="empty-state" style="background:var(--white);border:1px solid var(--border);border-radius:14px;">
-        <div class="empty-icon">📂</div>
+        <div class="empty-icon"><i class="bi bi-folder-x" style="font-size:1.6rem;color:var(--green-primary);"></i></div>
         <p class="empty-title">No Projects Found</p>
         <p class="empty-text">Try adjusting your filters or create a new project.</p>
         <a href="{{ url_for('projects.new_project') }}" class="btn-oc btn-oc-primary">New Project</a>
