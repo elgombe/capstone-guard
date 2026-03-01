@@ -77,10 +77,10 @@ def find_similar_projects(title: str, description: str,
     from models.db import Project, ProjectStatus
 
     if threshold is None:
-        threshold = float(os.environ.get('SIMILARITY_THRESHOLD', 0.9))
+        threshold = float(os.environ.get('SIMILARITY_THRESHOLD'))
 
-    title_weight = float(os.environ.get('TITLE_SIMILARITY_WEIGHT', 0.4))
-    desc_weight  = float(os.environ.get('DESCRIPTION_SIMILARITY_WEIGHT', 0.6))
+    title_weight = float(os.environ.get('TITLE_SIMILARITY_WEIGHT'))
+    desc_weight  = float(os.environ.get('DESCRIPTION_SIMILARITY_WEIGHT'))
 
     # Embed the incoming project ONCE (2 API calls total)
     try:
