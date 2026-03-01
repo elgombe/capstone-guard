@@ -586,7 +586,7 @@
     <!-- ── NAVBAR ── -->
     {% if session.user_id %}
     <nav class="app-navbar">
-        <a class="brand" href="{{ url_for('dashboard.dashboard') }}">
+        <a class="brand" href="{{ url_for('dashboard.dash') }}">
             <div class="brand-icon">
                 <svg width="16" height="16" fill="none" stroke-width="2.2" viewBox="0 0 24 24">
                     <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"/>
@@ -599,13 +599,13 @@
         <div class="nav-spacer"></div>
 
         <div class="nav-links">
-            <a class="nav-link-item" href="{{ url_for('dashboard.dashboard') }}">
+            <a class="nav-link-item" href="{{ url_for('dashboard.dash') }}">
                 <i class="bi bi-house-door"></i> Dashboard
             </a>
             <a class="nav-link-item" href="{{ url_for('projects.projects') }}">
                 <i class="bi bi-folder"></i> Projects
             </a>
-            <a class="nav-link-item" href="{{ url_for('notifications.notifications') }}">
+            <a class="nav-link-item" href="{{ url_for('notifications_bp.notifications') }}">
                 <i class="bi bi-bell"></i> Notifications
                 {% if unread_count|default(0) > 0 %}
                 <span class="notif-badge">{{ unread_count }}</span>
@@ -625,7 +625,7 @@
                     <a class="nav-dropdown-item" href="#"><i class="bi bi-person"></i> Profile</a>
                     <a class="nav-dropdown-item" href="#"><i class="bi bi-gear"></i> Settings</a>
                     <div class="nav-dropdown-divider"></div>
-                    <a class="nav-dropdown-item" href="{{ url_for('auth.logout') }}">
+                    <a class="nav-dropdown-item" href="{{ url_for('auth_bp.logout') }}">
                         <i class="bi bi-box-arrow-right"></i> Logout
                     </a>
                 </div>

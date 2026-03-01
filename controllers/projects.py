@@ -1,12 +1,69 @@
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
-from flask_jwt_extended import get_current_user
-from flask_login import login_required
-from app import create_notification, find_similar_projects
+from controllers.dashboard import login_required, get_current_user
 from datetime import datetime
+import os
+from difflib import SequenceMatcher
+from dotenv import load_dotenv
 
-from models.db import Comment, Project, ProjectStatus, Stream, db, UserRole, SimilarityRecord
+load_dotenv()
+
+from models.db import Comment, Notification, Project, ProjectStatus, Stream, db, UserRole, SimilarityRecord
 
 projects_bp = Blueprint('projects', __name__)
+
+
+def calculate_similarity(text1, text2):
+    """Calculate similarity between two texts"""
+    return SequenceMatcher(None, text1.lower(), text2.lower()).ratio()
+
+
+def find_similar_projects(title, description, threshold=None, exclude_id=None):
+    """Find similar projects"""
+    if threshold is None:
+        threshold = float(os.environ.get('SIMILARITY_THRESHOLD', 0.7))
+    
+    similar_projects = []
+    query = Project.query.filter_by(status=ProjectStatus.APPROVED)
+    
+    if exclude_id:
+        query = query.filter(Project.id != exclude_id)
+    
+    all_projects = query.all()
+    
+    for project in all_projects:
+        title_sim = calculate_similarity(title, project.title)
+        desc_sim = calculate_similarity(description, project.description)
+        
+        overall_sim = (
+            float(os.environ.get('TITLE_SIMILARITY_WEIGHT', 0.5)) * title_sim +
+            float(os.environ.get('DESCRIPTION_SIMILARITY_WEIGHT', 0.5)) * desc_sim
+        )
+        
+        if overall_sim >= threshold:
+            similar_projects.append({
+                'project': project,
+                'title_similarity': title_sim,
+                'description_similarity': desc_sim,
+                'overall_similarity': overall_sim
+            })
+    
+    similar_projects.sort(key=lambda x: x['overall_similarity'], reverse=True)
+    return similar_projects
+
+
+def create_notification(user_id, title, message, notification_type, related_project_id=None):
+    """Create a notification"""
+    notification = Notification(
+        user_id=user_id,
+        title=title,
+        message=message,
+        notification_type=notification_type,
+        related_project_id=related_project_id
+    )
+    db.session.add(notification)
+    db.session.commit()
+
+
 
 @projects_bp.route('/projects')
 @login_required
@@ -213,7 +270,7 @@ def update_project_status(project_id):
         
         # Create notification
         status_messages = {
-            ProjectStatus.projects_bpROVED: 'Your project has been projects_bproved!',
+            ProjectStatus.APPROVED: 'Your project has been approved!',
             ProjectStatus.REJECTED: 'Your project needs revisions.',
             ProjectStatus.UNDER_REVIEW: 'Your project is under review.'
         }

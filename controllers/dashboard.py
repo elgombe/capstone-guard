@@ -1,14 +1,28 @@
-from flask import Blueprint, render_template
-from flask_jwt_extended import get_current_user
-from flask_jwt_extended import get_current_user
-from flask_login import login_required
-from models.db import Project, Stream, Notification, UserRole, ProjectStatus
+from flask import Blueprint, flash, redirect, render_template, session, url_for
+from models.db import Project, Stream, Notification, UserRole, ProjectStatus, User
+from functools import wraps
 
-dashboard_bp = Blueprint('dashboard', __name__)
+dashboard = Blueprint('dashboard', __name__)
 
-@dashboard_bp.route('/')
+def login_required(f):
+    """Decorator for routes that require login"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Please log in to access this page.', 'warning')
+            return redirect(url_for('auth_bp.login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def get_current_user():
+    """Get the currently logged in user"""
+    if 'user_id' in session:
+        return User.query.get(session['user_id'])
+    return None
+
+@dashboard.route('/dashboard')
 @login_required
-def dashboard():
+def dash():
     """Dashboard page"""
     user = get_current_user()
     

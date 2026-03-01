@@ -1,16 +1,15 @@
-from dotenv import load_dotenv
+"""
+Flask Configuration
+"""
 import os
 from datetime import timedelta
 
-load_dotenv()
-
-
 class Config:
     """Base configuration"""
-    DEBUG = True
     
     # Secret key for sessions
     SECRET_KEY = os.environ.get('SECRET_KEY')
+    DEBUG = True
     
     # Database configuration
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URI')
@@ -24,7 +23,7 @@ class Config:
     # File upload configuration
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
-    ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
+    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'zip'}
     
     # Pagination
     PROJECTS_PER_PAGE = 20

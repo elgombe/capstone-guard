@@ -23,7 +23,7 @@
                                class="oc-input oc-input-lg"
                                id="title" name="title" required
                                placeholder="Enter a descriptive project title"
-                               hx-post="{{ url_for('htmx.htmx_check_duplicate') }}"
+                               hx-post="{{ url_for('htmx_bp.htmx_check_duplicate') }}"
                                hx-trigger="keyup changed delay:1s"
                                hx-include="[name='description']"
                                hx-target="#duplicateCheck">
@@ -35,7 +35,7 @@
                                   id="description" name="description"
                                   rows="7" required
                                   placeholder="Provide a detailed description including objectives, features, and technologies…"
-                                  hx-post="{{ url_for('htmx.htmx_check_duplicate') }}"
+                                  hx-post="{{ url_for('htmx_bp.htmx_check_duplicate') }}"
                                   hx-trigger="keyup changed delay:1s"
                                   hx-include="[name='title']"
                                   hx-target="#duplicateCheck"></textarea>
@@ -72,7 +72,7 @@
                     </div>
 
                     <div style="display:flex;gap:0.75rem;margin-top:1.8rem;">
-                        <a href="{{ url_for('dashboard.dashboard') }}" class="btn-oc btn-oc-outline">Cancel</a>
+                        <a href="{{ url_for('dashboard.dash') }}" class="btn-oc btn-oc-outline">Cancel</a>
                         <button type="submit" class="btn-oc btn-oc-primary">Submit Project</button>
                     </div>
                 </form>

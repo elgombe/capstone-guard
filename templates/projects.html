@@ -19,7 +19,7 @@
     <div class="oc-card" style="margin-bottom:1.2rem;">
         <div class="oc-card-body">
             <form id="filterForm"
-                  hx-get="{{ url_for('htmx.htmx_projects') }}"
+                  hx-get="{{ url_for('htmx_bp.htmx_projects') }}"
                   hx-target="#projectsList"
                   hx-trigger="change, input delay:500ms from:#searchInput">
                 <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:0.75rem;align-items:end;">

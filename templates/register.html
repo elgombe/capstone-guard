@@ -20,7 +20,7 @@
             <h2 style="font-family:'DM Serif Display',serif;font-size:1.8rem;color:var(--text-dark);letter-spacing:-0.03em;margin-bottom:0.3rem;">Create Account</h2>
             <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:1.8rem;">Join the CapstoneGuard</p>
 
-            <form method="POST" action="{{ url_for('auth.register') }}">
+            <form method="POST" action="{{ url_for('auth_bp.register') }}">
                 <div class="field">
                     <label class="oc-label">Full Name</label>
                     <input type="text" class="oc-input" name="full_name" id="full_name" required placeholder="Jane Doe">
@@ -44,7 +44,7 @@
 
             <p style="text-align:center;font-size:0.84rem;color:var(--text-muted);margin-top:1.5rem;">
                 Already have an account?
-                <a href="{{ url_for('auth.login') }}" style="color:var(--green-primary);font-weight:600;">Sign In</a>
+                <a href="{{ url_for('auth_bp.login') }}" style="color:var(--green-primary);font-weight:600;">Sign In</a>
             </p>
         </div>
 

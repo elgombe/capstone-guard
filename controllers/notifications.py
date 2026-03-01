@@ -1,10 +1,9 @@
 from flask import Blueprint, jsonify, render_template
-from flask_jwt_extended import get_current_user
-from flask_login import login_required
+from controllers.dashboard import login_required, get_current_user
 
 from models.db import Notification
 
-notifications_bp = Blueprint('notifications', __name__)
+notifications_bp = Blueprint('notifications_bp', __name__)
 
 @notifications_bp.route('/notifications')
 @login_required

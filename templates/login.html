@@ -121,7 +121,7 @@
           >No account?</span
         >
         <a
-          href="{{ url_for('auth.register') }}"
+          href="{{ url_for('auth_bp.register') }}"
           class="btn-oc btn-oc-outline btn-oc-sm"
           style="margin-left: 0.5rem"
           >Sign Up</a
@@ -190,7 +190,7 @@
         Please enter your account details to continue.
       </p>
 
-      <form method="POST" action="{{ url_for('auth.login') }}">
+      <form method="POST" action="{{ url_for('auth_bp.login') }}">
         <div class="field">
           <label class="oc-label">Email</label>
           <input

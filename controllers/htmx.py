@@ -1,10 +1,53 @@
 from flask import Blueprint, render_template, request
-from flask_login import login_required
-from app import find_similar_projects
+from controllers.dashboard import login_required
+import os
+from dotenv import load_dotenv
+from difflib import SequenceMatcher
+
+load_dotenv()
 
 from models.db import Project, ProjectStatus, db
 
-htmx_bp = Blueprint('htmx', __name__)
+def calculate_similarity(text1, text2):
+    """Calculate similarity between two texts"""
+    return SequenceMatcher(None, text1.lower(), text2.lower()).ratio()
+
+def find_similar_projects(title, description, threshold=None, exclude_id=None):
+    """Find similar projects"""
+    if threshold is None:
+        threshold = float(os.environ.get('SIMILARITY_THRESHOLD', 0.7))
+    
+    similar_projects = []
+    query = Project.query.filter_by(status=ProjectStatus.APPROVED)
+    
+    if exclude_id:
+        query = query.filter(Project.id != exclude_id)
+    
+    all_projects = query.all()
+    
+    for project in all_projects:
+        title_sim = calculate_similarity(title, project.title)
+        desc_sim = calculate_similarity(description, project.description)
+        
+        overall_sim = (
+            float(os.environ.get('TITLE_SIMILARITY_WEIGHT', 0.5)) * title_sim +
+            float(os.environ.get('DESCRIPTION_SIMILARITY_WEIGHT', 0.5)) * desc_sim
+        )
+        
+        if overall_sim >= threshold:
+            similar_projects.append({
+                'project': project,
+                'title_similarity': title_sim,
+                'description_similarity': desc_sim,
+                'overall_similarity': overall_sim
+            })
+    
+    similar_projects.sort(key=lambda x: x['overall_similarity'], reverse=True)
+    return similar_projects
+
+
+
+htmx_bp = Blueprint('htmx_bp', __name__)
 
 @htmx_bp.route('/htmx/check-duplicate', methods=['POST'])
 @login_required

@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, session, url_for
 
-index_bp = Blueprint('index', __name__)
+index_bp = Blueprint('index_bp', __name__)
 
 @index_bp.route('/')
 def index():
