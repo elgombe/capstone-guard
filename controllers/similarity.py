@@ -1,15 +1,5 @@
 """
 similarity.py — Gemini-powered semantic duplicate detection.
-
-Install:  pip install google-genai numpy python-dotenv
-Add to .env:
-    GEMINI_API_KEY=your-key-here
-    SIMILARITY_THRESHOLD=0.82
-    TITLE_SIMILARITY_WEIGHT=0.4
-    DESCRIPTION_SIMILARITY_WEIGHT=0.6
-
-Get a free API key at: https://aistudio.google.com/app/apikey
-Free tier: 1,500 embedding requests/day — no credit card needed.
 """
 
 import os
@@ -87,7 +77,7 @@ def find_similar_projects(title: str, description: str,
     from models.db import Project, ProjectStatus
 
     if threshold is None:
-        threshold = float(os.environ.get('SIMILARITY_THRESHOLD', 0.82))
+        threshold = float(os.environ.get('SIMILARITY_THRESHOLD', 0.9))
 
     title_weight = float(os.environ.get('TITLE_SIMILARITY_WEIGHT', 0.4))
     desc_weight  = float(os.environ.get('DESCRIPTION_SIMILARITY_WEIGHT', 0.6))
