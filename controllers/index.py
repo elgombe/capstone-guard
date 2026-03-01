@@ -5,5 +5,5 @@ index_bp = Blueprint('index_bp', __name__)
 @index_bp.route('/')
 def index():
     if 'user_id' in session:
-        return redirect(url_for('dashboard.dashboard'))
+        return redirect(url_for('dashboard.dash'))
     return render_template('index.html')
