@@ -75,6 +75,10 @@ GEMINI_API_KEY=your-gemini-api-key-here
 SIMILARITY_THRESHOLD=0.82
 TITLE_SIMILARITY_WEIGHT=0.4
 DESCRIPTION_SIMILARITY_WEIGHT=0.6
+
+# Admin credentials
+ADMIN_EMAIL=your-admin-email
+ADMIN_PASSWORD=your-admin-password
 ```
 
 **5. Run the development server**

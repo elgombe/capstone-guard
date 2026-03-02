@@ -632,7 +632,6 @@
                     <i class="bi bi-chevron-down" style="font-size:0.7rem; opacity:0.6;"></i>
                 </button>
                 <div class="nav-dropdown-menu">
-                    <a class="nav-dropdown-item" href="#"><i class="bi bi-person"></i> Profile</a>
                     {% if session.user_role == 'admin' %}
                     <a class="nav-dropdown-item" href="{{ url_for('admin_bp.settings') }}"><i class="bi bi-gear"></i> Settings</a>
                     {% endif %}
