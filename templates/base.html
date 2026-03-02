@@ -633,7 +633,10 @@
                 </button>
                 <div class="nav-dropdown-menu">
                     <a class="nav-dropdown-item" href="#"><i class="bi bi-person"></i> Profile</a>
-                    <a class="nav-dropdown-item" href="#"><i class="bi bi-gear"></i> Settings</a>
+                    {% if session.user_role == 'admin' %}
+                    <a class="nav-dropdown-item" href="{{ url_for('admin_bp.settings') }}"><i class="bi bi-gear"></i> Settings</a>
+                    {% endif %}
+                    <a class="nav-dropdown-item" href="{{ url_for('admin_bp.change_password') }}"><i class="bi bi-lock"></i> Change Password</a>
                     <div class="nav-dropdown-divider"></div>
                     <a class="nav-dropdown-item" href="{{ url_for('auth_bp.logout') }}">
                         <i class="bi bi-box-arrow-right"></i> Logout

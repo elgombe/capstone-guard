@@ -5,6 +5,7 @@ from controllers.auth import auth_bp
 from controllers.index import index_bp
 from controllers.notifications import notifications_bp
 from controllers.projects import projects_bp
+from controllers.admin import admin_bp
 from controllers.dashboard import dashboard
 from controllers.htmx import htmx_bp
 
@@ -19,6 +20,7 @@ app.register_blueprint(dashboard)
 app.register_blueprint(projects_bp)
 app.register_blueprint(notifications_bp)
 app.register_blueprint(htmx_bp)
+app.register_blueprint(admin_bp)
 
 init_db(app)
 

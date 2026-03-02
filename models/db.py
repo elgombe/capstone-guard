@@ -103,7 +103,7 @@ class Stream(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False, index=True)
     year = db.Column(db.Integer, nullable=False)
-    semester = db.Column(db.String(20), nullable=True)  # e.g., "Fall", "Spring"
+    semester = db.Column(db.String(20), nullable=True)  # e.g., "August"
     
     # Stream details
     description = db.Column(db.Text, nullable=True)
@@ -503,12 +503,21 @@ def init_db(app):
         
         # Create default streams if not exists
         if Stream.query.count() == 0:
-            streams = [
-                Stream(name='2026 Stream A', year=2026, semester='Spring', is_active=True),
-                Stream(name='2026 Stream B', year=2026, semester='Fall', is_active=True),
-                Stream(name='2023 Stream A', year=2023, semester='Spring', is_active=False),
-                Stream(name='2023 Stream B', year=2023, semester='Fall', is_active=False),
+            programs = [
+                'ISE', 'IIT', 'ICS', 'ISA', 'SPT', 'SFP', 'SBT',
+                'EPT', 'EIM', 'EEE', 'ECP', 'BFA', 'BFE', 'BEC'
             ]
+            current_year = datetime.utcnow().year
+            years = list(range(2023, current_year + 1))  # 2023 up to current year
+            streams = []
+            for year in years:
+                for program in programs:
+                    streams.append(Stream(
+                        name=f'{year} {program}',
+                        year=year,
+                        semester='August',
+                        is_active=(year == current_year)  # Only current year is active
+                    ))
             db.session.add_all(streams)
         
         db.session.commit()

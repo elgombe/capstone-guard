@@ -53,7 +53,35 @@
                 <div class="stat-label">Streams</div>
             </div>
         </div>
+        {% if user.role.value == 'admin' %}
+        <a href="{{ url_for('admin_bp.settings') }}" class="stat-card" style="text-decoration:none;cursor:pointer;">
+            <div class="stat-icon-box" style="background:#f3e8ff;">
+                <i class="bi bi-gear" style="font-size:1.25rem;color:#7c3aed;"></i>
+            </div>
+            <div>
+                <div class="stat-value" style="font-size:1rem;padding-top:2px;">Settings</div>
+                <div class="stat-label">Manage Reviewers</div>
+            </div>
+        </a>
+        {% endif %}
     </div>
+
+    <!-- Admin Quick Actions -->
+    {% if user.role.value == 'admin' %}
+    <div class="oc-card" style="margin-bottom:1.2rem;">
+        <div class="oc-card-header">
+            <h2 class="oc-card-title"><i class="bi bi-shield-check" style="color:var(--green-primary);margin-right:6px;"></i>Admin Quick Actions</h2>
+        </div>
+        <div class="oc-card-body" style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+            <a href="{{ url_for('admin_bp.settings') }}" class="btn-oc btn-oc-outline">
+                <i class="bi bi-person-badge"></i> Manage Reviewers
+            </a>
+            <a href="{{ url_for('projects.projects') }}?status=pending" class="btn-oc btn-oc-outline">
+                <i class="bi bi-hourglass-split"></i> Pending Reviews
+            </a>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Two-col content -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
