@@ -122,7 +122,7 @@ def new_project():
             year    = request.form.get('intake_year', '').strip()
             flash(f'Stream "{year} {program}" not found. Please contact the administrator.', 'danger')
             programs   = _get_programs()
-            stream_map = _get_stream_map(active_only=True)
+            stream_map = _get_stream_map()
             return render_template('new_project.html', programs=programs, stream_map=stream_map)
 
         project = Project(
@@ -180,7 +180,7 @@ def new_project():
 
     # GET
     programs   = _get_programs()
-    stream_map = _get_stream_map(active_only=True)
+    stream_map = _get_stream_map()
     return render_template('new_project.html', programs=programs, stream_map=stream_map)
 
 
