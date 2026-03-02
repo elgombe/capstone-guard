@@ -22,7 +22,7 @@
                   hx-get="{{ url_for('htmx_bp.htmx_projects') }}"
                   hx-target="#projectsList"
                   hx-trigger="change, input delay:500ms from:#searchInput">
-                <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:0.75rem;align-items:end;">
+                <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:0.75rem;align-items:end;">
                     <div>
                         <label class="oc-label">Search</label>
                         <div style="position:relative;">
@@ -36,14 +36,20 @@
                                    style="padding-left:2rem;">
                         </div>
                     </div>
-                    <div>
-                        <label class="oc-label">Stream</label>
-                        <select class="oc-select" name="stream" id="streamFilter">
-                            <option value="">All Streams</option>
-                            {% for stream in streams %}
-                            <option value="{{ stream.id }}" {% if current_stream == stream.id %}selected{% endif %}>{{ stream.name }}</option>
+    <div>
+                        <label class="oc-label">Programme</label>
+                        <select class="oc-select" name="program" id="programFilter">
+                            <option value="">All Programmes</option>
+                            {% for prog in programs %}
+                            <option value="{{ prog }}" {% if current_program == prog %}selected{% endif %}>{{ prog }}</option>
                             {% endfor %}
                         </select>
+                    </div>
+                    <div>
+                        <label class="oc-label">Year</label>
+                        <input type="number" class="oc-input" name="year" id="yearFilter"
+                               placeholder="e.g. 2024" min="2023" max="2030"
+                               value="{{ current_year or '' }}">
                     </div>
                     <div>
                         <label class="oc-label">Status</label>
@@ -58,7 +64,7 @@
                     </div>
                     <div>
                         <label class="oc-label" style="opacity:0;">Reset</label>
-                        <button type="reset" class="btn-oc btn-oc-outline" style="width:100%;" onclick="this.form.reset(); this.form.dispatchEvent(new Event('change'));">
+                        <button type="reset" class="btn-oc btn-oc-outline" style="width:100%;" onclick="this.form.reset(); setTimeout(() => { document.querySelectorAll('.cs-trigger').forEach(t => { const sel = t.closest('.cs-wrapper')?.querySelector('select'); if (sel) sel.dispatchEvent(new Event('change')); }); this.form.dispatchEvent(new Event('change')); }, 0);">
                             <i class="bi bi-x-lg"></i>
                         </button>
                     </div>

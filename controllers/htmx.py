@@ -40,15 +40,29 @@ def htmx_check_duplicate():
 @login_required
 def htmx_projects():
     """HTMX endpoint for paginated/filtered project list."""
-    stream_id     = request.args.get('stream', type=int)
+    program       = request.args.get('program', '').strip()
+    year_filter   = request.args.get('year', '').strip()
     status_filter = request.args.get('status')
     search        = request.args.get('search', '')
     page          = request.args.get('page', 1, type=int)
 
     query = Project.query
 
-    if stream_id:
-        query = query.filter_by(stream_id=stream_id)
+    if program or year_filter:
+        from models.db import Stream
+        stream_query = Stream.query
+        if program:
+            stream_query = stream_query.filter(Stream.name.ilike(f'% {program}'))
+        if year_filter:
+            try:
+                stream_query = stream_query.filter_by(year=int(year_filter))
+            except ValueError:
+                pass
+        matching_ids = [s.id for s in stream_query.all()]
+        if matching_ids:
+            query = query.filter(Project.stream_id.in_(matching_ids))
+        else:
+            query = query.filter(db.false())
 
     if status_filter:
         try:
@@ -69,7 +83,11 @@ def htmx_projects():
     query = query.order_by(Project.submitted_at.desc())
     pagination = query.paginate(page=page, per_page=20, error_out=False)
 
+    from controllers.projects import PROGRAMS
     return render_template('partials/project_list.html',
         projects=pagination.items,
-        pagination=pagination
+        pagination=pagination,
+        programs=PROGRAMS,
+        current_program=program,
+        current_year=year_filter,
     )

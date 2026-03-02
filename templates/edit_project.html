@@ -24,6 +24,33 @@
                 </div>
 
                 <div class="field" style="margin-top:1rem;">
+                    <label class="oc-label">Stream <span style="color:#e53e3e;">*</span></label>
+                    <div style="display:grid;grid-template-columns:1fr 140px;gap:0.75rem;">
+                        <div>
+                            <label class="oc-label" for="program" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Programme</label>
+                            <select class="oc-select" id="program" name="program" required onchange="resolveStream()">
+                                <option value="">Select programme</option>
+                                {% for prog in programs %}
+                                <option value="{{ prog }}" {% if current_program == prog %}selected{% endif %}>{{ prog }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="oc-label" for="intake_year" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Year</label>
+                            <input type="number" class="oc-input" id="intake_year" name="intake_year"
+                                   placeholder="e.g. 2024"
+                                   min="2023" max="2030" required
+                                   value="{{ current_year }}"
+                                   oninput="resolveStream()">
+                        </div>
+                    </div>
+                    <input type="hidden" id="stream_id" name="stream_id" value="{{ project.stream_id }}">
+                    <p id="streamStatus" class="oc-help" style="margin-top:6px;">
+                        <span style="color:var(--green-primary);"><i class="bi bi-check-circle"></i> Current stream: {{ project.stream.name }}</span>
+                    </p>
+                </div>
+
+                <div class="field" style="margin-top:1rem;">
                     <label class="oc-label" for="technologies">Technologies Used</label>
                     <input type="text" class="oc-input" id="technologies" name="technologies" value="{{ project.technologies or '' }}">
                 </div>
@@ -46,4 +73,31 @@
         </div>
     </div>
 </div>
+<style>
+@media(max-width:600px){
+    div[style*="grid-template-columns:1fr 140px"]{grid-template-columns:1fr !important;}
+}
+</style>
+
+<script>
+const streamMap = {{ stream_map | tojson }};
+
+function resolveStream() {
+    const prog  = document.getElementById('program').value.trim();
+    const year  = document.getElementById('intake_year').value.trim();
+    const hidden = document.getElementById('stream_id');
+    const status = document.getElementById('streamStatus');
+
+    if (!prog || !year) { hidden.value = ''; status.textContent = ''; return; }
+
+    const key = year + ' ' + prog;
+    if (streamMap[key] !== undefined) {
+        hidden.value    = streamMap[key];
+        status.innerHTML = '<span style="color:var(--green-primary);"><i class="bi bi-check-circle"></i> Stream: ' + key + '</span>';
+    } else {
+        hidden.value    = '';
+        status.innerHTML = '<span style="color:#e53e3e;"><i class="bi bi-exclamation-circle"></i> No stream found for ' + key + '</span>';
+    }
+}
+</script>
 {% endblock %}

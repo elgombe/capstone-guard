@@ -10,6 +10,22 @@ from models.db import Comment, Notification, Project, ProjectStatus, Stream, db,
 
 projects_bp = Blueprint('projects', __name__)
 
+PROGRAMS = ['ISE', 'IIT', 'ICS', 'ISA', 'SPT', 'SFP', 'SBT',
+            'EPT', 'EIM', 'EEE', 'ECP', 'BFA', 'BFE', 'BEC']
+
+
+def _get_programs():
+    """Return the canonical list of programmes."""
+    return PROGRAMS
+
+
+def _get_stream_map(active_only=False):
+    """Return a dict of {'YEAR PROG': stream_id} for JS lookups."""
+    q = Stream.query
+    if active_only:
+        q = q.filter_by(is_active=True)
+    return {s.name: s.id for s in q.all()}
+
 
 def create_notification(user_id, title, message, notification_type, related_project_id=None):
     """Create a notification for a user."""
@@ -30,15 +46,29 @@ def create_notification(user_id, title, message, notification_type, related_proj
 @login_required
 def projects():
     """All projects page."""
-    stream_id     = request.args.get('stream', type=int)
+    program       = request.args.get('program', '').strip()
+    year_filter   = request.args.get('year', '').strip()
     status_filter = request.args.get('status')
     search        = request.args.get('search', '')
     page          = request.args.get('page', 1, type=int)
 
     query = Project.query
 
-    if stream_id:
-        query = query.filter_by(stream_id=stream_id)
+    # Filter by program and/or year via stream name
+    if program or year_filter:
+        stream_query = Stream.query
+        if program:
+            stream_query = stream_query.filter(Stream.name.ilike(f'% {program}'))
+        if year_filter:
+            try:
+                stream_query = stream_query.filter_by(year=int(year_filter))
+            except ValueError:
+                pass
+        matching_ids = [s.id for s in stream_query.all()]
+        if matching_ids:
+            query = query.filter(Project.stream_id.in_(matching_ids))
+        else:
+            query = query.filter(db.false())
 
     if status_filter:
         try:
@@ -59,13 +89,14 @@ def projects():
     query = query.order_by(Project.submitted_at.desc())
     pagination = query.paginate(page=page, per_page=20, error_out=False)
 
-    streams = Stream.query.order_by(Stream.name).all()
+    programs = _get_programs()
 
     return render_template('projects.html',
         projects=pagination.items,
         pagination=pagination,
-        streams=streams,
-        current_stream=stream_id,
+        programs=programs,
+        current_program=program,
+        current_year=year_filter,
         current_status=status_filter,
         search_query=search
     )
@@ -78,12 +109,21 @@ def new_project():
     if request.method == 'POST':
         user = get_current_user()
 
-        title       = request.form.get('title', '').strip()
-        description = request.form.get('description', '').strip()
-        stream_id   = request.form.get('stream_id', type=int)
+        title        = request.form.get('title', '').strip()
+        description  = request.form.get('description', '').strip()
+        stream_id    = request.form.get('stream_id', type=int)
         technologies = request.form.get('technologies', '').strip()
-        github_url  = request.form.get('github_url', '').strip()
-        demo_url    = request.form.get('demo_url', '').strip()
+        github_url   = request.form.get('github_url', '').strip()
+        demo_url     = request.form.get('demo_url', '').strip()
+
+        # Validate stream was resolved
+        if not stream_id:
+            program = request.form.get('program', '').strip()
+            year    = request.form.get('intake_year', '').strip()
+            flash(f'Stream "{year} {program}" not found. Please contact the administrator.', 'danger')
+            programs   = _get_programs()
+            stream_map = _get_stream_map(active_only=True)
+            return render_template('new_project.html', programs=programs, stream_map=stream_map)
 
         project = Project(
             title=title,
@@ -139,8 +179,9 @@ def new_project():
         return redirect(url_for('projects.project_detail', project_id=project.id))
 
     # GET
-    streams = Stream.query.filter_by(is_active=True).order_by(Stream.name).all()
-    return render_template('new_project.html', streams=streams)
+    programs   = _get_programs()
+    stream_map = _get_stream_map(active_only=True)
+    return render_template('new_project.html', programs=programs, stream_map=stream_map)
 
 
 @projects_bp.route('/projects/<int:project_id>')
@@ -192,13 +233,30 @@ def edit_project(project_id):
         project.github_url   = request.form.get('github_url', '').strip() or None
         project.demo_url     = request.form.get('demo_url', '').strip() or None
         project.updated_at   = datetime.utcnow()
+        new_stream_id = request.form.get('stream_id', type=int)
+        if new_stream_id:
+            project.stream_id = new_stream_id
         db.session.commit()
 
         flash('Project updated successfully!', 'success')
         return redirect(url_for('projects.project_detail', project_id=project.id))
 
-    streams = Stream.query.filter_by(is_active=True).order_by(Stream.name).all()
-    return render_template('edit_project.html', project=project, streams=streams)
+    programs   = _get_programs()
+    stream_map = _get_stream_map()
+    # Pre-populate program and year from current stream name ("2024 IIT" -> year=2024, prog="IIT")
+    current_program = ''
+    current_year    = ''
+    if project.stream:
+        parts = project.stream.name.split(' ', 1)
+        if len(parts) == 2:
+            current_year, current_program = parts[0], parts[1]
+    return render_template('edit_project.html',
+        project=project,
+        programs=programs,
+        stream_map=stream_map,
+        current_program=current_program,
+        current_year=current_year
+    )
 
 
 @projects_bp.route('/projects/<int:project_id>/status', methods=['POST'])
