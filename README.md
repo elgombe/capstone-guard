@@ -68,7 +68,7 @@ SECRET_KEY=your-secret-key-here
 FLASK_ENV=development
 
 # Database
-DATABASE_URL=sqlite:///capstoneguard.db
+DATABASE_URI=sqlite:///capstoneguard.db
 
 # Google Gemini (free at https://aistudio.google.com/app/apikey)
 GEMINI_API_KEY=your-gemini-api-key-here
@@ -150,7 +150,7 @@ This approach catches paraphrased duplicates that character-level methods (like 
 | Variable | Default | Description |
 |---|---|---|
 | `SECRET_KEY` | — | Flask session secret key |
-| `DATABASE_URL` | — | SQLAlchemy database URI |
+| `DATABASE_URI` | — | SQLAlchemy database URI |
 | `GEMINI_API_KEY` | — | Google Gemini API key |
 | `SIMILARITY_THRESHOLD` | `0.82` | Minimum score to flag a duplicate |
 | `TITLE_SIMILARITY_WEIGHT` | `0.4` | Weight given to title similarity |
