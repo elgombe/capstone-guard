@@ -4,6 +4,8 @@
 
 ---
 
+<img src="static/images/image.png" height=540>
+
 ## Features
 
 - **AI Duplicate Detection** — Uses Google Gemini embeddings (`gemini-embedding-001`) to semantically compare project titles and descriptions, catching paraphrased duplicates with configurable similarity thresholds
