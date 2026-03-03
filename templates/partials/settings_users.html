@@ -14,7 +14,6 @@
 
 <div class="oc-card" style="overflow:hidden;">
 
-    <!-- Card Header: title left, filter right -->
     <div class="oc-card-header">
         <h2 class="oc-card-title">
             <i class="bi bi-people" style="color:var(--green-primary);margin-right:6px;"></i>
@@ -29,7 +28,7 @@
             <input type="text" name="search" value="{{ search }}" class="oc-input"
                    placeholder="Search name or email…"
                    style="width:180px;padding:0.4rem 0.75rem;font-size:0.85rem;">
-            <div style="width:130px;">
+            <div style="width:130px;position:relative;">
                 <select name="role" class="oc-select">
                     <option value="">All roles</option>
                     {% for role in roles %}
@@ -68,7 +67,6 @@
             {% for u in users %}
             <tr class="user-row">
 
-                <!-- User -->
                 <td>
                     <div style="display:flex;align-items:center;gap:0.65rem;">
                         {% if u.profile_picture %}
@@ -89,10 +87,8 @@
                     </div>
                 </td>
 
-                <!-- Email -->
                 <td class="cell-email" title="{{ u.email }}">{{ u.email }}</td>
 
-                <!-- Role -->
                 <td style="white-space:nowrap;">
                     {% if u.role.value == 'admin' %}
                         <span class="oc-badge" style="background:#ede9fe;color:#6d28d9;">Admin</span>
@@ -103,7 +99,6 @@
                     {% endif %}
                 </td>
 
-                <!-- Status -->
                 <td style="white-space:nowrap;">
                     {% if u.is_active %}
                         <span class="oc-badge badge-approved">Active</span>
@@ -112,23 +107,18 @@
                     {% endif %}
                 </td>
 
-                <!-- Joined -->
                 <td style="white-space:nowrap;color:var(--text-muted);">
                     {{ u.created_at.strftime('%d %b %Y') }}
                 </td>
 
-                <!-- Change Role -->
                 <td style="text-align:right;">
                     {% if u.id == current_user.id %}
                         <span style="font-size:0.8rem;color:var(--text-muted);font-style:italic;">—</span>
                     {% else %}
-                        <form hx-post="{{ url_for('admin_bp.change_user_role', user_id=u.id) }}"
-                              hx-target="#settings-panel"
-                              hx-swap="innerHTML"
-                              hx-confirm="Change {{ u.full_name }}'s role?"
-                              style="display:inline-flex;gap:0.4rem;align-items:center;justify-content:flex-end;">
-                            <div style="width:115px;">
-                                <select name="role" class="oc-select">
+                        <div style="display:inline-flex;gap:0.4rem;align-items:center;justify-content:flex-end;">
+                            <div style="width:115px;position:relative;">
+                                <select id="rs-{{ u.id }}"
+                                        class="oc-select role-select">
                                     {% for role in roles %}
                                     <option value="{{ role.value }}" {% if u.role == role %}selected{% endif %}>
                                         {{ role.value|capitalize }}
@@ -136,10 +126,20 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            <button type="submit" class="btn-oc btn-oc-primary btn-oc-sm" style="white-space:nowrap;">
+                            <button type="button"
+                                    class="btn-oc btn-oc-primary btn-oc-sm"
+                                    style="white-space:nowrap;"
+                                    onclick="RoleModal.open({{ u.id }}, '{{ u.full_name | replace("'", "\\'") }}', '{{ u.role.value }}')">
                                 <i class="bi bi-check-lg"></i> Save
                             </button>
-                        </form>
+                            {# Hidden form submitted on confirm #}
+                            <form id="rf-{{ u.id }}" style="display:none;"
+                                  hx-post="{{ url_for('admin_bp.change_user_role', user_id=u.id) }}"
+                                  hx-target="#settings-panel"
+                                  hx-swap="innerHTML">
+                                <input type="hidden" name="role" id="rh-{{ u.id }}">
+                            </form>
+                        </div>
                     {% endif %}
                 </td>
             </tr>
@@ -157,44 +157,152 @@
 
 </div>
 
+<!-- ── Modal ── -->
+<div id="um-overlay" style="display:none;position:fixed;inset:0;z-index:9999;
+     background:rgba(15,30,22,0.5);backdrop-filter:blur(3px);
+     align-items:center;justify-content:center;">
+    <div id="um-box" style="background:var(--white);border-radius:18px;
+         box-shadow:0 24px 60px rgba(0,0,0,0.2);width:100%;max-width:420px;margin:1rem;
+         overflow:hidden;transition:transform .2s ease,opacity .2s ease;">
+
+        <div style="padding:1.4rem 1.6rem 0;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
+                <div style="width:42px;height:42px;background:var(--green-light);border-radius:11px;
+                            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-person-gear" style="color:var(--green-primary);font-size:1.1rem;"></i>
+                </div>
+                <button id="um-x" type="button" style="background:none;border:none;cursor:pointer;
+                        color:var(--text-muted);font-size:1.1rem;padding:0;line-height:1;margin-top:2px;">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <h3 style="font-family:'DM Sans',sans-serif;font-size:1.15rem;font-weight:700;
+                       color:var(--text-dark);margin:0.9rem 0 0.3rem;letter-spacing:-0.02em;">Change Role</h3>
+            <p id="um-desc" style="font-size:0.88rem;color:var(--text-muted);margin:0 0 1.2rem;line-height:1.6;"></p>
+        </div>
+
+        <div style="margin:0 1.6rem 1.4rem;padding:0.8rem 1rem;background:var(--bg);
+                    border-radius:10px;border:1px solid var(--border);
+                    display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+                <span style="font-size:0.8rem;color:var(--text-muted);">Current:</span>
+                <span id="um-cur" class="oc-badge"></span>
+            </div>
+            <i class="bi bi-arrow-right" style="color:var(--text-muted);"></i>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+                <span style="font-size:0.8rem;color:var(--text-muted);">New:</span>
+                <span id="um-new" class="oc-badge"></span>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:0.6rem;padding:1rem 1.6rem 1.4rem;border-top:1px solid var(--border);">
+            <button id="um-cancel" type="button" class="btn-oc btn-oc-outline" style="flex:1;justify-content:center;">
+                Cancel
+            </button>
+            <button id="um-confirm" type="button" class="btn-oc btn-oc-primary" style="flex:1;justify-content:center;">
+                <i class="bi bi-check-lg"></i> Confirm
+            </button>
+        </div>
+    </div>
+</div>
+
 <style>
-.users-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.88rem;
-}
-.users-table thead tr {
-    border-bottom: 1px solid var(--border);
-}
+.users-table { width:100%; border-collapse:collapse; font-size:0.88rem; }
+.users-table thead tr { border-bottom:1px solid var(--border); }
 .users-table th {
-    padding: 0.75rem 1rem;
-    text-align: left;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
+    padding:0.75rem 1rem; text-align:left; font-size:0.72rem; font-weight:700;
+    color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;
 }
-.users-table th:first-child { padding-left: 1.4rem; }
-.users-table th:last-child  { padding-right: 1.4rem; }
-.users-table td {
-    padding: 0.85rem 1rem;
-    vertical-align: middle;
-}
-.users-table td:first-child { padding-left: 1.4rem; }
-.users-table td:last-child  { padding-right: 1.4rem; }
+.users-table th:first-child { padding-left:1.4rem; }
+.users-table th:last-child  { padding-right:1.4rem; }
+.users-table td { padding:0.85rem 1rem; vertical-align:middle; }
+.users-table td:first-child { padding-left:1.4rem; }
+.users-table td:last-child  { padding-right:1.4rem; }
+.user-row { border-bottom:1px solid var(--border); }
+.user-row:last-child { border-bottom:none; }
+.user-row:hover { background:var(--bg); }
 
-.user-row { border-bottom: 1px solid var(--border); }
-.user-row:last-child { border-bottom: none; }
-.user-row:hover { background: var(--bg); }
-
-/* Email truncates instead of pushing layout wide */
-.cell-email {
-    color: var(--text-muted);
-    max-width: 160px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
+.cell-email { color:var(--text-muted); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 </style>
+
+<script>
+const RoleModal = (() => {
+    const STYLES = {
+        admin:    { label:'Admin',    bg:'#ede9fe', color:'#6d28d9' },
+        reviewer: { label:'Reviewer', bg:'#dbeafe', color:'#1e40af' },
+        student:  { label:'Student',  bg:'#fef3c7', color:'#92400e' },
+    };
+
+    const overlay  = document.getElementById('um-overlay');
+    const box      = document.getElementById('um-box');
+    const btnX      = document.getElementById('um-x');
+    const btnCancel = document.getElementById('um-cancel');
+    const btnConfirm= document.getElementById('um-confirm');
+
+    let _userId = null;
+
+    function setBadge(id, role) {
+        const s  = STYLES[role] || { label: role, bg:'#f0f0f0', color:'#555' };
+        const el = document.getElementById(id);
+        el.textContent      = s.label;
+        el.style.background = s.bg;
+        el.style.color      = s.color;
+    }
+
+    function open(userId, userName, currentRole) {
+        const newRole = document.getElementById('rs-' + userId).value;
+        if (newRole === currentRole) return;
+
+        _userId = userId;
+
+        document.getElementById('um-desc').textContent =
+            'You are about to change ' + userName + '\u2019s role. This will take effect immediately.';
+        setBadge('um-cur', currentRole);
+        setBadge('um-new', newRole);
+
+        // Show overlay then animate in
+        overlay.style.display = 'flex';
+        box.style.transform   = 'translateY(14px)';
+        box.style.opacity     = '0';
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            box.style.transform = 'translateY(0)';
+            box.style.opacity   = '1';
+        }));
+        document.body.style.overflow = 'hidden';
+    }
+
+    function close() {
+        box.style.transform = 'translateY(14px)';
+        box.style.opacity   = '0';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            document.body.style.overflow = '';
+        }, 200);
+        _userId = null;
+    }
+
+    function confirm() {
+        const uid = _userId;
+        close();
+        // Copy selected value into hidden form input, then submit via HTMX
+        const selectedRole = document.getElementById('rs-' + uid).value;
+        document.getElementById('rh-' + uid).value = selectedRole;
+        const form = document.getElementById('rf-' + uid);
+        htmx.process(form);           // ensure HTMX has processed this form
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }
+
+    // Wire up buttons once
+    btnX.addEventListener('click', close);
+    btnCancel.addEventListener('click', close);
+    btnConfirm.addEventListener('click', confirm);
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) close();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay.style.display === 'flex') close();
+    });
+
+    return { open };
+})();
+</script>

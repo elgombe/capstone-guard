@@ -57,7 +57,7 @@
                         <input type="text" name="search" value="{{ search }}" class="oc-input"
                                placeholder="Search name or email…"
                                style="width:200px;padding:0.42rem 0.75rem;font-size:0.85rem;">
-                        <select name="role" class="oc-input"
+                        <select name="role" class="oc-select"
                                 style="width:140px;padding:0.42rem 0.65rem;font-size:0.85rem;">
                             <option value="">All roles</option>
                             {% for role in roles %}
@@ -157,7 +157,7 @@
                                               action="{{ url_for('admin_bp.change_user_role', user_id=u.id) }}"
                                               onsubmit="return confirm('Change {{ u.full_name }}\'s role to ' + this.role.value + '?')"
                                               style="display:flex;gap:0.4rem;justify-content:flex-end;align-items:center;">
-                                            <select name="role" class="oc-input"
+                                            <select name="role" class="oc-select"
                                                     style="padding:0.38rem 0.6rem;font-size:0.82rem;width:120px;">
                                                 {% for role in roles %}
                                                 <option value="{{ role.value }}"
