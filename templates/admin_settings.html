@@ -2,13 +2,13 @@
 {% block title %}Settings - CapstoneGuard{% endblock %}
 
 {% block content %}
-<div style="max-width:1000px;margin:0 auto;padding:2rem 1.5rem;">
+<div style="max-width:1100px;margin:0 auto;padding:2rem 1.5rem;">
 
     <!-- Header -->
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.8rem;flex-wrap:wrap;gap:1rem;">
         <div>
             <h1 class="page-title">Settings</h1>
-            <p class="page-subtitle">Manage reviewer accounts and system configuration.</p>
+            <p class="page-subtitle">Manage accounts and system configuration.</p>
         </div>
         <a href="{{ url_for('dashboard.dash') }}" class="btn-oc btn-oc-outline">
             <i class="bi bi-arrow-left"></i> Back to Dashboard
@@ -18,176 +18,99 @@
     <div style="display:grid;grid-template-columns:220px 1fr;gap:1.4rem;align-items:start;">
 
         <!-- Sidebar Nav -->
-        <div class="oc-card" style="overflow:visible;">
-            <div style="padding:0.5rem;">
-                <a href="#reviewers"
-                   style="display:flex;align-items:center;gap:10px;padding:0.6rem 0.9rem;border-radius:8px;
-                          background:var(--green-light);color:var(--green-primary);font-size:0.88rem;
-                          font-weight:600;text-decoration:none;">
+        <div class="oc-card" style="overflow:visible;position:sticky;top:74px;">
+            <div style="padding:0.5rem;" id="settings-nav">
+
+                <a href="{{ url_for('admin_bp.partial_reviewers') }}"
+                   hx-get="{{ url_for('admin_bp.partial_reviewers') }}"
+                   hx-target="#settings-panel"
+                   hx-swap="innerHTML"
+                   hx-push-url="{{ url_for('admin_bp.settings') }}?tab=reviewers"
+                   onclick="setActiveTab(this)"
+                   class="settings-nav-item is-active">
                     <i class="bi bi-person-badge"></i> Reviewer Accounts
                 </a>
-                <a href="{{ url_for('admin_bp.change_password') }}"
-                   style="display:flex;align-items:center;gap:10px;padding:0.6rem 0.9rem;border-radius:8px;
-                          color:var(--text-muted);font-size:0.88rem;font-weight:500;text-decoration:none;margin-top:2px;">
+
+                <a href="{{ url_for('admin_bp.partial_users') }}"
+                   hx-get="{{ url_for('admin_bp.partial_users') }}"
+                   hx-target="#settings-panel"
+                   hx-swap="innerHTML"
+                   hx-push-url="{{ url_for('admin_bp.settings') }}?tab=users"
+                   onclick="setActiveTab(this)"
+                   class="settings-nav-item">
+                    <i class="bi bi-people"></i> Manage Users
+                </a>
+
+                <a href="{{ url_for('admin_bp.partial_change_password') }}"
+                   hx-get="{{ url_for('admin_bp.partial_change_password') }}"
+                   hx-target="#settings-panel"
+                   hx-swap="innerHTML"
+                   hx-push-url="{{ url_for('admin_bp.settings') }}?tab=password"
+                   onclick="setActiveTab(this)"
+                   class="settings-nav-item">
                     <i class="bi bi-lock"></i> Change Password
                 </a>
+
             </div>
         </div>
 
-        <!-- Main Content -->
-        <div>
-
-            <!-- Create Reviewer Card -->
-            <div class="oc-card" style="margin-bottom:1.2rem;" id="reviewers">
-                <div class="oc-card-header">
-                    <h2 class="oc-card-title">
-                        <i class="bi bi-person-plus" style="color:var(--green-primary);margin-right:6px;"></i>
-                        Add Reviewer Account
-                    </h2>
-                </div>
-                <div class="oc-card-body">
-                    <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:1.2rem;">
-                        Create a new lecturer / reviewer account. A temporary password will be generated —
-                        share it securely with the lecturer. They can change it after logging in.
-                    </p>
-                    <form method="POST" action="{{ url_for('admin_bp.create_reviewer') }}">
-                        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0.75rem;align-items:end;">
-                            <div>
-                                <label class="oc-label">Full Name <span style="color:#e53e3e;">*</span></label>
-                                <input type="text" class="oc-input" name="full_name"
-                                       placeholder="e.g. Dr. Jane Smith" required>
-                            </div>
-                            <div>
-                                <label class="oc-label">Email Address <span style="color:#e53e3e;">*</span></label>
-                                <input type="email" class="oc-input" name="email"
-                                       placeholder="lecturer@institution.ac.zw" required>
-                            </div>
-                            <div>
-                                <button type="submit" class="btn-oc btn-oc-primary" style="white-space:nowrap;">
-                                    <i class="bi bi-plus-lg"></i> Create Account
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+        <!-- Dynamic Panel — loaded by HTMX -->
+        <div id="settings-panel"
+             hx-get="{{ url_for('admin_bp.partial_' + (active_tab or 'reviewers')) }}"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div style="display:flex;align-items:center;justify-content:center;padding:4rem;color:var(--text-muted);">
+                <i class="bi bi-arrow-repeat" style="animation:spin .7s linear infinite;margin-right:8px;font-size:1.1rem;"></i> Loading…
             </div>
-
-            <!-- Reviewer List Card -->
-            <div class="oc-card">
-                <div class="oc-card-header">
-                    <h2 class="oc-card-title">
-                        <i class="bi bi-people" style="color:var(--green-primary);margin-right:6px;"></i>
-                        Reviewer Accounts
-                        <span style="font-size:0.8rem;font-weight:500;color:var(--text-muted);margin-left:8px;">
-                            ({{ reviewers|length }})
-                        </span>
-                    </h2>
-                </div>
-
-                {% if reviewers %}
-                    <div style="overflow-x:auto;">
-                        <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
-                            <thead>
-                                <tr style="border-bottom:1px solid var(--border);">
-                                    <th style="padding:0.75rem 1.4rem;text-align:left;font-size:0.72rem;font-weight:700;
-                                               color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Name</th>
-                                    <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;
-                                               color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Email</th>
-                                    <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;
-                                               color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Status</th>
-                                    <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;
-                                               color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Created</th>
-                                    <th style="padding:0.75rem 1.4rem;text-align:right;font-size:0.72rem;font-weight:700;
-                                               color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for reviewer in reviewers %}
-                                <tr style="border-bottom:1px solid var(--border);" class="reviewer-row">
-                                    <td style="padding:0.9rem 1.4rem;">
-                                        <div style="display:flex;align-items:center;gap:0.65rem;">
-                                            <div class="avatar-circle" style="width:32px;height:32px;font-size:0.8rem;flex-shrink:0;">
-                                                {{ reviewer.full_name[0].upper() }}
-                                            </div>
-                                            <span style="font-weight:600;color:var(--text-dark);">{{ reviewer.full_name }}</span>
-                                        </div>
-                                    </td>
-                                    <td style="padding:0.9rem 1rem;color:var(--text-muted);">{{ reviewer.email }}</td>
-                                    <td style="padding:0.9rem 1rem;">
-                                        {% if reviewer.is_active %}
-                                            <span class="oc-badge badge-approved">Active</span>
-                                        {% else %}
-                                            <span class="oc-badge badge-rejected">Inactive</span>
-                                        {% endif %}
-                                    </td>
-                                    <td style="padding:0.9rem 1rem;color:var(--text-muted);">
-                                        {{ reviewer.created_at.strftime('%d %b %Y') }}
-                                    </td>
-                                    <td style="padding:0.9rem 1.4rem;">
-                                        <div style="display:flex;gap:0.4rem;justify-content:flex-end;flex-wrap:wrap;">
-
-                                            <!-- Reset Password -->
-                                            <form method="POST"
-                                                  action="{{ url_for('admin_bp.reset_reviewer_password', user_id=reviewer.id) }}"
-                                                  onsubmit="return confirm('Reset password for {{ reviewer.full_name }}? A new temporary password will be shown.')">
-                                                <button type="submit" class="btn-oc btn-oc-outline btn-oc-sm"
-                                                        title="Reset password">
-                                                    <i class="bi bi-key"></i> Reset PW
-                                                </button>
-                                            </form>
-
-                                            <!-- Toggle Active -->
-                                            <form method="POST"
-                                                  action="{{ url_for('admin_bp.toggle_reviewer', user_id=reviewer.id) }}"
-                                                  onsubmit="return confirm('{% if reviewer.is_active %}Deactivate{% else %}Activate{% endif %} {{ reviewer.full_name }}?')">
-                                                <button type="submit"
-                                                        class="btn-oc btn-oc-sm {% if reviewer.is_active %}btn-oc-outline{% else %}btn-oc-primary{% endif %}"
-                                                        title="{% if reviewer.is_active %}Deactivate{% else %}Activate{% endif %}">
-                                                    <i class="bi bi-{% if reviewer.is_active %}pause-circle{% else %}play-circle{% endif %}"></i>
-                                                    {% if reviewer.is_active %}Deactivate{% else %}Activate{% endif %}
-                                                </button>
-                                            </form>
-
-                                            <!-- Delete -->
-                                            <form method="POST"
-                                                  action="{{ url_for('admin_bp.delete_reviewer', user_id=reviewer.id) }}"
-                                                  onsubmit="return confirm('Permanently delete {{ reviewer.full_name }}\'s account? This cannot be undone.')">
-                                                <button type="submit"
-                                                        class="btn-oc btn-oc-sm"
-                                                        style="background:#fef2f2;color:#b91c1c;border:1.5px solid #fecaca;"
-                                                        title="Delete account">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </form>
-
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <i class="bi bi-person-badge" style="font-size:1.6rem;color:var(--green-primary);"></i>
-                        </div>
-                        <p class="empty-title">No reviewers yet</p>
-                        <p class="empty-text">Use the form above to create the first reviewer account.</p>
-                    </div>
-                {% endif %}
-            </div>
-
         </div>
+
     </div>
 </div>
 
 <style>
-.reviewer-row:last-child { border-bottom: none; }
-.reviewer-row:hover { background: var(--bg); }
+.settings-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.6rem 0.9rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--text-muted);
+    margin-top: 2px;
+    transition: background .15s, color .15s;
+    cursor: pointer;
+}
+.settings-nav-item:first-child { margin-top: 0; }
+.settings-nav-item.is-active {
+    background: var(--green-light);
+    color: var(--green-primary);
+    font-weight: 600;
+}
+.settings-nav-item:hover:not(.is-active) {
+    background: var(--bg);
+    color: var(--text-dark);
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 @media(max-width:768px){
     div[style*="grid-template-columns:220px 1fr"] { grid-template-columns:1fr !important; }
-    div[style*="grid-template-columns:1fr 1fr auto"] { grid-template-columns:1fr !important; }
 }
 </style>
+
+<script>
+function setActiveTab(el) {
+    document.querySelectorAll('.settings-nav-item').forEach(a => a.classList.remove('is-active'));
+    el.classList.add('is-active');
+}
+
+// Restore correct active tab if user lands directly via ?tab=
+(function() {
+    const tab = new URLSearchParams(location.search).get('tab') || 'reviewers';
+    const map = { reviewers: 0, users: 1, password: 2 };
+    const items = document.querySelectorAll('.settings-nav-item');
+    items.forEach(a => a.classList.remove('is-active'));
+    if (items[map[tab]] !== undefined) items[map[tab]].classList.add('is-active');
+})();
+</script>
 {% endblock %}

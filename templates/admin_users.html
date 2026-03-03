@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}Manage Users - CapstoneGuard{% endblock %}
+
+{% block content %}
+<div style="max-width:1100px;margin:0 auto;padding:2rem 1.5rem;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.8rem;flex-wrap:wrap;gap:1rem;">
+        <div>
+            <h1 class="page-title">Manage Users</h1>
+            <p class="page-subtitle">View all registered accounts and change their roles.</p>
+        </div>
+        <a href="{{ url_for('admin_bp.settings') }}" class="btn-oc btn-oc-outline">
+            <i class="bi bi-arrow-left"></i> Back to Settings
+        </a>
+    </div>
+
+    <div style="display:grid;grid-template-columns:220px 1fr;gap:1.4rem;align-items:start;">
+
+        <!-- Sidebar Nav -->
+        <div class="oc-card" style="overflow:visible;">
+            <div style="padding:0.5rem;">
+                <a href="{{ url_for('admin_bp.settings') }}"
+                   style="display:flex;align-items:center;gap:10px;padding:0.6rem 0.9rem;border-radius:8px;
+                          color:var(--text-muted);font-size:0.88rem;font-weight:500;text-decoration:none;">
+                    <i class="bi bi-person-badge"></i> Reviewer Accounts
+                </a>
+                <a href="{{ url_for('admin_bp.manage_users') }}"
+                   style="display:flex;align-items:center;gap:10px;padding:0.6rem 0.9rem;border-radius:8px;
+                          background:var(--green-light);color:var(--green-primary);font-size:0.88rem;
+                          font-weight:600;text-decoration:none;margin-top:2px;">
+                    <i class="bi bi-people"></i> Manage Users
+                </a>
+                <a href="{{ url_for('admin_bp.change_password') }}"
+                   style="display:flex;align-items:center;gap:10px;padding:0.6rem 0.9rem;border-radius:8px;
+                          color:var(--text-muted);font-size:0.88rem;font-weight:500;text-decoration:none;margin-top:2px;">
+                    <i class="bi bi-lock"></i> Change Password
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div>
+            <div class="oc-card">
+                <div class="oc-card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+                    <h2 class="oc-card-title">
+                        <i class="bi bi-people" style="color:var(--green-primary);margin-right:6px;"></i>
+                        All Users
+                        <span style="font-size:0.8rem;font-weight:500;color:var(--text-muted);margin-left:8px;">
+                            ({{ users|length }})
+                        </span>
+                    </h2>
+
+                    <!-- Search & Filter -->
+                    <form method="GET" action="{{ url_for('admin_bp.manage_users') }}"
+                          style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+                        <input type="text" name="search" value="{{ search }}" class="oc-input"
+                               placeholder="Search name or email…"
+                               style="width:200px;padding:0.42rem 0.75rem;font-size:0.85rem;">
+                        <select name="role" class="oc-input"
+                                style="width:140px;padding:0.42rem 0.65rem;font-size:0.85rem;">
+                            <option value="">All roles</option>
+                            {% for role in roles %}
+                            <option value="{{ role.value }}" {% if role_filter == role.value %}selected{% endif %}>
+                                {{ role.value|capitalize }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn-oc btn-oc-primary btn-oc-sm">
+                            <i class="bi bi-search"></i> Filter
+                        </button>
+                        {% if search or role_filter %}
+                        <a href="{{ url_for('admin_bp.manage_users') }}"
+                           class="btn-oc btn-oc-outline btn-oc-sm">Clear</a>
+                        {% endif %}
+                    </form>
+                </div>
+
+                {% if users %}
+                <div style="overflow-x:auto;">
+                    <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+                        <thead>
+                            <tr style="border-bottom:1px solid var(--border);">
+                                <th style="padding:0.75rem 1.4rem;text-align:left;font-size:0.72rem;font-weight:700;
+                                           color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">User</th>
+                                <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;
+                                           color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Email</th>
+                                <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;
+                                           color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Current Role</th>
+                                <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;
+                                           color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Status</th>
+                                <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;
+                                           color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Joined</th>
+                                <th style="padding:0.75rem 1.4rem;text-align:right;font-size:0.72rem;font-weight:700;
+                                           color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Change Role</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr style="border-bottom:1px solid var(--border);" class="user-row">
+
+                                <!-- Name -->
+                                <td style="padding:0.9rem 1.4rem;">
+                                    <div style="display:flex;align-items:center;gap:0.65rem;">
+                                        {% if u.profile_picture %}
+                                            <img src="{{ u.profile_picture }}" alt=""
+                                                 style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+                                        {% else %}
+                                            <div class="avatar-circle" style="width:32px;height:32px;font-size:0.8rem;flex-shrink:0;">
+                                                {{ u.full_name[0].upper() }}
+                                            </div>
+                                        {% endif %}
+                                        <div>
+                                            <span style="font-weight:600;color:var(--text-dark);">{{ u.full_name }}</span>
+                                            {% if u.id == current_user.id %}
+                                                <span style="font-size:0.7rem;background:var(--green-light);color:var(--green-primary);
+                                                             padding:1px 6px;border-radius:4px;margin-left:4px;font-weight:600;">You</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Email -->
+                                <td style="padding:0.9rem 1rem;color:var(--text-muted);">{{ u.email }}</td>
+
+                                <!-- Current Role badge -->
+                                <td style="padding:0.9rem 1rem;">
+                                    {% if u.role.value == 'admin' %}
+                                        <span class="oc-badge" style="background:#ede9fe;color:#6d28d9;">Admin</span>
+                                    {% elif u.role.value == 'reviewer' %}
+                                        <span class="oc-badge badge-under_review">Reviewer</span>
+                                    {% else %}
+                                        <span class="oc-badge badge-pending">Student</span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Status -->
+                                <td style="padding:0.9rem 1rem;">
+                                    {% if u.is_active %}
+                                        <span class="oc-badge badge-approved">Active</span>
+                                    {% else %}
+                                        <span class="oc-badge badge-rejected">Inactive</span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Joined -->
+                                <td style="padding:0.9rem 1rem;color:var(--text-muted);">
+                                    {{ u.created_at.strftime('%d %b %Y') }}
+                                </td>
+
+                                <!-- Change Role dropdown -->
+                                <td style="padding:0.9rem 1.4rem;text-align:right;">
+                                    {% if u.id == current_user.id %}
+                                        <span style="font-size:0.8rem;color:var(--text-muted);font-style:italic;">—</span>
+                                    {% else %}
+                                        <form method="POST"
+                                              action="{{ url_for('admin_bp.change_user_role', user_id=u.id) }}"
+                                              onsubmit="return confirm('Change {{ u.full_name }}\'s role to ' + this.role.value + '?')"
+                                              style="display:flex;gap:0.4rem;justify-content:flex-end;align-items:center;">
+                                            <select name="role" class="oc-input"
+                                                    style="padding:0.38rem 0.6rem;font-size:0.82rem;width:120px;">
+                                                {% for role in roles %}
+                                                <option value="{{ role.value }}"
+                                                        {% if u.role == role %}selected{% endif %}>
+                                                    {{ role.value|capitalize }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                            <button type="submit" class="btn-oc btn-oc-primary btn-oc-sm"
+                                                    title="Save role change">
+                                                <i class="bi bi-check-lg"></i> Save
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="bi bi-people" style="font-size:1.6rem;color:var(--green-primary);"></i>
+                        </div>
+                        <p class="empty-title">No users found</p>
+                        <p class="empty-text">Try adjusting your search or filter.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.user-row:last-child  { border-bottom: none; }
+.user-row:hover       { background: var(--bg); }
+@media(max-width:768px){
+    div[style*="grid-template-columns:220px 1fr"] { grid-template-columns:1fr !important; }
+}
+</style>
+{% endblock %}

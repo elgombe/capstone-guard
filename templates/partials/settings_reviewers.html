@@ -1,0 +1,155 @@
+{# partials/settings_reviewers.html — loaded via HTMX into #settings-panel #}
+
+<!-- Flash messages injected by HTMX responses land here -->
+<div id="partial-flash">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="flash-alert {{ category }}" style="margin-bottom:0.75rem;">
+            <i class="bi bi-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+            <span>{{ message }}</span>
+            <button class="flash-close" onclick="this.parentElement.remove()">✕</button>
+        </div>
+        {% endfor %}
+    {% endwith %}
+</div>
+
+<!-- Create Reviewer Card -->
+<div class="oc-card" style="margin-bottom:1.2rem;">
+    <div class="oc-card-header">
+        <h2 class="oc-card-title">
+            <i class="bi bi-person-plus" style="color:var(--green-primary);margin-right:6px;"></i>
+            Add Reviewer Account
+        </h2>
+    </div>
+    <div class="oc-card-body">
+        <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:1.2rem;">
+            Create a new lecturer / reviewer account. A temporary password will be generated —
+            share it securely with the lecturer. They can change it after logging in.
+        </p>
+        <form hx-post="{{ url_for('admin_bp.create_reviewer') }}"
+              hx-target="#settings-panel"
+              hx-swap="innerHTML">
+            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0.75rem;align-items:end;">
+                <div>
+                    <label class="oc-label">Full Name <span style="color:#e53e3e;">*</span></label>
+                    <input type="text" class="oc-input" name="full_name"
+                           placeholder="e.g. Dr. Jane Smith" required>
+                </div>
+                <div>
+                    <label class="oc-label">Email Address <span style="color:#e53e3e;">*</span></label>
+                    <input type="email" class="oc-input" name="email"
+                           placeholder="lecturer@institution.ac.zw" required>
+                </div>
+                <div>
+                    <button type="submit" class="btn-oc btn-oc-primary" style="white-space:nowrap;">
+                        <i class="bi bi-plus-lg"></i> Create Account
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reviewer List Card -->
+<div class="oc-card">
+    <div class="oc-card-header">
+        <h2 class="oc-card-title">
+            <i class="bi bi-people" style="color:var(--green-primary);margin-right:6px;"></i>
+            Reviewer Accounts
+            <span style="font-size:0.8rem;font-weight:500;color:var(--text-muted);margin-left:8px;">
+                ({{ reviewers|length }})
+            </span>
+        </h2>
+    </div>
+
+    {% if reviewers %}
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <th style="padding:0.75rem 1.4rem;text-align:left;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Name</th>
+                    <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Email</th>
+                    <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Status</th>
+                    <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Created</th>
+                    <th style="padding:0.75rem 1.4rem;text-align:right;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reviewers %}
+                <tr style="border-bottom:1px solid var(--border);" class="reviewer-row">
+                    <td style="padding:0.9rem 1.4rem;">
+                        <div style="display:flex;align-items:center;gap:0.65rem;">
+                            <div class="avatar-circle" style="width:32px;height:32px;font-size:0.8rem;flex-shrink:0;">
+                                {{ r.full_name[0].upper() }}
+                            </div>
+                            <span style="font-weight:600;color:var(--text-dark);">{{ r.full_name }}</span>
+                        </div>
+                    </td>
+                    <td style="padding:0.9rem 1rem;color:var(--text-muted);">{{ r.email }}</td>
+                    <td style="padding:0.9rem 1rem;">
+                        {% if r.is_active %}
+                            <span class="oc-badge badge-approved">Active</span>
+                        {% else %}
+                            <span class="oc-badge badge-rejected">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:0.9rem 1rem;color:var(--text-muted);">
+                        {{ r.created_at.strftime('%d %b %Y') }}
+                    </td>
+                    <td style="padding:0.9rem 1.4rem;">
+                        <div style="display:flex;gap:0.4rem;justify-content:flex-end;flex-wrap:wrap;">
+
+                            <!-- Reset Password -->
+                            <button class="btn-oc btn-oc-outline btn-oc-sm"
+                                    hx-post="{{ url_for('admin_bp.reset_reviewer_password', user_id=r.id) }}"
+                                    hx-target="#settings-panel"
+                                    hx-swap="innerHTML"
+                                    hx-confirm="Reset password for {{ r.full_name }}? A new temporary password will be shown.">
+                                <i class="bi bi-key"></i> Reset PW
+                            </button>
+
+                            <!-- Toggle Active -->
+                            <button class="btn-oc btn-oc-sm {% if r.is_active %}btn-oc-outline{% else %}btn-oc-primary{% endif %}"
+                                    hx-post="{{ url_for('admin_bp.toggle_reviewer', user_id=r.id) }}"
+                                    hx-target="#settings-panel"
+                                    hx-swap="innerHTML"
+                                    hx-confirm="{% if r.is_active %}Deactivate{% else %}Activate{% endif %} {{ r.full_name }}?">
+                                <i class="bi bi-{% if r.is_active %}pause-circle{% else %}play-circle{% endif %}"></i>
+                                {% if r.is_active %}Deactivate{% else %}Activate{% endif %}
+                            </button>
+
+                            <!-- Delete -->
+                            <button class="btn-oc btn-oc-sm"
+                                    style="background:#fef2f2;color:#b91c1c;border:1.5px solid #fecaca;"
+                                    hx-post="{{ url_for('admin_bp.delete_reviewer', user_id=r.id) }}"
+                                    hx-target="#settings-panel"
+                                    hx-swap="innerHTML"
+                                    hx-confirm="Permanently delete {{ r.full_name }}'s account? This cannot be undone.">
+                                <i class="bi bi-trash"></i>
+                            </button>
+
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">
+            <i class="bi bi-person-badge"></i>
+        </div>
+        <p class="empty-title">No reviewers yet</p>
+        <p class="empty-text">Use the form above to create the first reviewer account.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.reviewer-row:last-child { border-bottom: none; }
+.reviewer-row:hover { background: var(--bg); }
+@media(max-width:768px){
+    div[style*="grid-template-columns:1fr 1fr auto"] { grid-template-columns:1fr !important; }
+}
+</style>

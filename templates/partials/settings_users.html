@@ -1,0 +1,200 @@
+{# partials/settings_users.html — loaded via HTMX into #settings-panel #}
+
+<div id="partial-flash">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="flash-alert {{ category }}" style="margin-bottom:0.75rem;">
+            <i class="bi bi-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+            <span>{{ message }}</span>
+            <button class="flash-close" onclick="this.parentElement.remove()">✕</button>
+        </div>
+        {% endfor %}
+    {% endwith %}
+</div>
+
+<div class="oc-card" style="overflow:hidden;">
+
+    <!-- Card Header: title left, filter right -->
+    <div class="oc-card-header">
+        <h2 class="oc-card-title">
+            <i class="bi bi-people" style="color:var(--green-primary);margin-right:6px;"></i>
+            All Users
+            <span style="font-size:0.8rem;font-weight:500;color:var(--text-muted);margin-left:8px;">({{ users|length }})</span>
+        </h2>
+
+        <form hx-get="{{ url_for('admin_bp.partial_users') }}"
+              hx-target="#settings-panel"
+              hx-swap="innerHTML"
+              style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+            <input type="text" name="search" value="{{ search }}" class="oc-input"
+                   placeholder="Search name or email…"
+                   style="width:180px;padding:0.4rem 0.75rem;font-size:0.85rem;">
+            <div style="width:130px;">
+                <select name="role" class="oc-select">
+                    <option value="">All roles</option>
+                    {% for role in roles %}
+                    <option value="{{ role.value }}" {% if role_filter == role.value %}selected{% endif %}>
+                        {{ role.value|capitalize }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn-oc btn-oc-primary btn-oc-sm">
+                <i class="bi bi-search"></i> Filter
+            </button>
+            {% if search or role_filter %}
+            <a hx-get="{{ url_for('admin_bp.partial_users') }}"
+               hx-target="#settings-panel"
+               hx-swap="innerHTML"
+               class="btn-oc btn-oc-outline btn-oc-sm"
+               style="cursor:pointer;">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+
+    {% if users %}
+    <table class="users-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th style="text-align:right;">Change Role</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr class="user-row">
+
+                <!-- User -->
+                <td>
+                    <div style="display:flex;align-items:center;gap:0.65rem;">
+                        {% if u.profile_picture %}
+                            <img src="{{ u.profile_picture }}" alt=""
+                                 style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+                        {% else %}
+                            <div class="avatar-circle" style="width:32px;height:32px;font-size:0.8rem;flex-shrink:0;">
+                                {{ u.full_name[0].upper() }}
+                            </div>
+                        {% endif %}
+                        <div>
+                            <div style="font-weight:600;color:var(--text-dark);">{{ u.full_name }}</div>
+                            {% if u.id == current_user.id %}
+                                <span style="font-size:0.7rem;background:var(--green-light);color:var(--green-primary);
+                                             padding:1px 6px;border-radius:4px;font-weight:600;">You</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </td>
+
+                <!-- Email -->
+                <td class="cell-email" title="{{ u.email }}">{{ u.email }}</td>
+
+                <!-- Role -->
+                <td style="white-space:nowrap;">
+                    {% if u.role.value == 'admin' %}
+                        <span class="oc-badge" style="background:#ede9fe;color:#6d28d9;">Admin</span>
+                    {% elif u.role.value == 'reviewer' %}
+                        <span class="oc-badge badge-under_review">Reviewer</span>
+                    {% else %}
+                        <span class="oc-badge badge-pending">Student</span>
+                    {% endif %}
+                </td>
+
+                <!-- Status -->
+                <td style="white-space:nowrap;">
+                    {% if u.is_active %}
+                        <span class="oc-badge badge-approved">Active</span>
+                    {% else %}
+                        <span class="oc-badge badge-rejected">Inactive</span>
+                    {% endif %}
+                </td>
+
+                <!-- Joined -->
+                <td style="white-space:nowrap;color:var(--text-muted);">
+                    {{ u.created_at.strftime('%d %b %Y') }}
+                </td>
+
+                <!-- Change Role -->
+                <td style="text-align:right;">
+                    {% if u.id == current_user.id %}
+                        <span style="font-size:0.8rem;color:var(--text-muted);font-style:italic;">—</span>
+                    {% else %}
+                        <form hx-post="{{ url_for('admin_bp.change_user_role', user_id=u.id) }}"
+                              hx-target="#settings-panel"
+                              hx-swap="innerHTML"
+                              hx-confirm="Change {{ u.full_name }}'s role?"
+                              style="display:inline-flex;gap:0.4rem;align-items:center;justify-content:flex-end;">
+                            <div style="width:115px;">
+                                <select name="role" class="oc-select">
+                                    {% for role in roles %}
+                                    <option value="{{ role.value }}" {% if u.role == role %}selected{% endif %}>
+                                        {{ role.value|capitalize }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-oc btn-oc-primary btn-oc-sm" style="white-space:nowrap;">
+                                <i class="bi bi-check-lg"></i> Save
+                            </button>
+                        </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon"><i class="bi bi-people"></i></div>
+        <p class="empty-title">No users found</p>
+        <p class="empty-text">Try adjusting your search or filter.</p>
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+.users-table thead tr {
+    border-bottom: 1px solid var(--border);
+}
+.users-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+.users-table th:first-child { padding-left: 1.4rem; }
+.users-table th:last-child  { padding-right: 1.4rem; }
+.users-table td {
+    padding: 0.85rem 1rem;
+    vertical-align: middle;
+}
+.users-table td:first-child { padding-left: 1.4rem; }
+.users-table td:last-child  { padding-right: 1.4rem; }
+
+.user-row { border-bottom: 1px solid var(--border); }
+.user-row:last-child { border-bottom: none; }
+.user-row:hover { background: var(--bg); }
+
+/* Email truncates instead of pushing layout wide */
+.cell-email {
+    color: var(--text-muted);
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+</style>

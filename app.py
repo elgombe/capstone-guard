@@ -1,7 +1,7 @@
 from datetime import datetime
 from flask import Flask, render_template
 from models.db import db, init_db
-from controllers.auth import auth_bp
+from controllers.auth import auth_bp, init_oauth
 from controllers.index import index_bp
 from controllers.notifications import notifications_bp
 from controllers.projects import projects_bp
@@ -22,6 +22,7 @@ app.register_blueprint(notifications_bp)
 app.register_blueprint(htmx_bp)
 app.register_blueprint(admin_bp)
 
+init_oauth(app)
 init_db(app)
 
 
@@ -74,4 +75,4 @@ def internal_error(error):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0')

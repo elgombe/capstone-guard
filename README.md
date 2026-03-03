@@ -81,6 +81,10 @@ DESCRIPTION_SIMILARITY_WEIGHT=0.6
 # Admin credentials
 ADMIN_EMAIL=your-admin-email
 ADMIN_PASSWORD=your-admin-password
+
+# Google Auth
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
 ```
 
 **5. Run the development server**

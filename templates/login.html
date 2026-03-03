@@ -239,10 +239,16 @@
         >
           <i class="bi bi-github"></i> GitHub
         </button>
-        <button
-          type="button"
+        <a
+          href="{{ url_for('auth_bp.google_login') }}"
           class="btn-oc btn-oc-outline"
-          style="justify-content: center"
+          style="
+            justify-content: center;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+          "
         >
           <svg width="16" height="16" viewBox="0 0 24 24">
             <path
@@ -263,7 +269,7 @@
             />
           </svg>
           Google
-        </button>
+        </a>
       </div>
 
       <p
