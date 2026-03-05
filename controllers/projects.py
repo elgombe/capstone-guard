@@ -6,7 +6,7 @@ from .similarity import find_similar_projects          # ← OpenAI-powered
 
 load_dotenv()
 
-from models.db import Comment, Notification, Project, ProjectStatus, Stream, db, UserRole, SimilarityRecord
+from models.db import Comment, Notification, Project, ProjectStatus, ProjectCategory, Stream, Group, db, UserRole, SimilarityRecord
 
 projects_bp = Blueprint('projects', __name__)
 
@@ -25,6 +25,13 @@ def _get_stream_map(active_only=False):
     if active_only:
         q = q.filter_by(is_active=True)
     return {s.name: s.id for s in q.all()}
+
+
+def _get_user_groups(user):
+    """Return groups the student belongs to (for HIT200 group selection)."""
+    if user.role == UserRole.STUDENT:
+        return user.groups   # via group_members backref
+    return []
 
 
 def create_notification(user_id, title, message, notification_type, related_project_id=None):
@@ -115,6 +122,13 @@ def new_project():
         technologies = request.form.get('technologies', '').strip()
         github_url   = request.form.get('github_url', '').strip()
         demo_url     = request.form.get('demo_url', '').strip()
+        category_val = request.form.get('category', 'hit400')
+        group_id     = request.form.get('group_id', type=int)
+
+        try:
+            category = ProjectCategory(category_val)
+        except ValueError:
+            category = ProjectCategory.HIT400
 
         # Validate stream was resolved
         if not stream_id:
@@ -123,13 +137,26 @@ def new_project():
             flash(f'Stream "{year} {program}" not found. Please contact the administrator.', 'danger')
             programs   = _get_programs()
             stream_map = _get_stream_map()
-            return render_template('new_project.html', programs=programs, stream_map=stream_map)
+            groups     = _get_user_groups(user)
+            return render_template('new_project.html', programs=programs,
+                                   stream_map=stream_map, groups=groups)
+
+        # HIT200 requires a group
+        if category == ProjectCategory.HIT200 and not group_id:
+            flash('HIT200 projects must be linked to a group.', 'danger')
+            programs   = _get_programs()
+            stream_map = _get_stream_map()
+            groups     = _get_user_groups(user)
+            return render_template('new_project.html', programs=programs,
+                                   stream_map=stream_map, groups=groups)
 
         project = Project(
             title=title,
             description=description,
             user_id=user.id,
             stream_id=stream_id,
+            category=category,
+            group_id=group_id if category == ProjectCategory.HIT200 else None,
             technologies=technologies or None,
             github_url=github_url or None,
             demo_url=demo_url or None,
@@ -179,9 +206,12 @@ def new_project():
         return redirect(url_for('projects.project_detail', project_id=project.id))
 
     # GET
+    user       = get_current_user()
     programs   = _get_programs()
     stream_map = _get_stream_map()
-    return render_template('new_project.html', programs=programs, stream_map=stream_map)
+    groups     = _get_user_groups(user)
+    return render_template('new_project.html', programs=programs,
+                           stream_map=stream_map, groups=groups)
 
 
 @projects_bp.route('/projects/<int:project_id>')

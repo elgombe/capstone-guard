@@ -31,6 +31,16 @@
                     <i class="bi bi-person-badge"></i> Reviewer Accounts
                 </a>
 
+                <a href="{{ url_for('admin_bp.partial_supervisors') }}"
+                   hx-get="{{ url_for('admin_bp.partial_supervisors') }}"
+                   hx-target="#settings-panel"
+                   hx-swap="innerHTML"
+                   hx-push-url="{{ url_for('admin_bp.settings') }}?tab=supervisors"
+                   onclick="setActiveTab(this)"
+                   class="settings-nav-item">
+                    <i class="bi bi-person-workspace"></i> Supervisors
+                </a>
+
                 <a href="{{ url_for('admin_bp.partial_users') }}"
                    hx-get="{{ url_for('admin_bp.partial_users') }}"
                    hx-target="#settings-panel"
@@ -107,7 +117,7 @@ function setActiveTab(el) {
 // Restore correct active tab if user lands directly via ?tab=
 (function() {
     const tab = new URLSearchParams(location.search).get('tab') || 'reviewers';
-    const map = { reviewers: 0, users: 1, password: 2 };
+    const map = { reviewers: 0, supervisors: 1, users: 2, password: 3 };
     const items = document.querySelectorAll('.settings-nav-item');
     items.forEach(a => a.classList.remove('is-active'));
     if (items[map[tab]] !== undefined) items[map[tab]].classList.add('is-active');

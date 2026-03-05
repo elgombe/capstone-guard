@@ -1,0 +1,144 @@
+{# partials/settings_supervisors.html — loaded via HTMX into #settings-panel #}
+
+<div id="partial-flash">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="flash-alert {{ category }}" style="margin-bottom:0.75rem;">
+            <i class="bi bi-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+            <span>{{ message }}</span>
+            <button class="flash-close" onclick="this.parentElement.remove()">✕</button>
+        </div>
+        {% endfor %}
+    {% endwith %}
+</div>
+
+<!-- Create Supervisor -->
+<div class="oc-card" style="margin-bottom:1.2rem;">
+    <div class="oc-card-header">
+        <h2 class="oc-card-title">
+            <i class="bi bi-person-plus" style="color:var(--green-primary);margin-right:6px;"></i>
+            Add Supervisor Account
+        </h2>
+    </div>
+    <div class="oc-card-body">
+        <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:1.2rem;">
+            Create a HIT200 supervisor (lecturer) account. They can log in, create groups, and assign students.
+            A temporary password will be generated — share it securely.
+        </p>
+        <form hx-post="{{ url_for('admin_bp.create_supervisor') }}"
+              hx-target="#settings-panel"
+              hx-swap="innerHTML">
+            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0.75rem;align-items:end;">
+                <div>
+                    <label class="oc-label">Full Name <span style="color:#e53e3e;">*</span></label>
+                    <input type="text" class="oc-input" name="full_name"
+                           placeholder="e.g. Dr. Jane Smith" required>
+                </div>
+                <div>
+                    <label class="oc-label">Email Address <span style="color:#e53e3e;">*</span></label>
+                    <input type="email" class="oc-input" name="email"
+                           placeholder="lecturer@hit.ac.zw" required>
+                </div>
+                <div>
+                    <button type="submit" class="btn-oc btn-oc-primary" style="white-space:nowrap;">
+                        <i class="bi bi-plus-lg"></i> Create Account
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Supervisor List -->
+<div class="oc-card">
+    <div class="oc-card-header">
+        <h2 class="oc-card-title">
+            <i class="bi bi-people" style="color:var(--green-primary);margin-right:6px;"></i>
+            Supervisor Accounts
+            <span style="font-size:0.8rem;font-weight:500;color:var(--text-muted);margin-left:8px;">
+                ({{ supervisors|length }})
+            </span>
+        </h2>
+    </div>
+
+    {% if supervisors %}
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <th style="padding:0.75rem 1.4rem;text-align:left;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Name</th>
+                    <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Email</th>
+                    <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Groups</th>
+                    <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Status</th>
+                    <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Created</th>
+                    <th style="padding:0.75rem 1.4rem;text-align:right;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in supervisors %}
+                <tr style="border-bottom:1px solid var(--border);" class="supervisor-row">
+                    <td style="padding:0.9rem 1.4rem;">
+                        <div style="display:flex;align-items:center;gap:0.65rem;">
+                            <div class="avatar-circle" style="width:32px;height:32px;font-size:0.8rem;flex-shrink:0;">
+                                {{ s.full_name[0].upper() }}
+                            </div>
+                            <span style="font-weight:600;color:var(--text-dark);">{{ s.full_name }}</span>
+                        </div>
+                    </td>
+                    <td style="padding:0.9rem 1rem;color:var(--text-muted);">{{ s.email }}</td>
+                    <td style="padding:0.9rem 1rem;">
+                        <span class="oc-badge badge-under_review">{{ s.supervised_groups|length }} group(s)</span>
+                    </td>
+                    <td style="padding:0.9rem 1rem;">
+                        {% if s.is_active %}
+                            <span class="oc-badge badge-approved">Active</span>
+                        {% else %}
+                            <span class="oc-badge badge-rejected">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:0.9rem 1rem;color:var(--text-muted);">{{ s.created_at.strftime('%d %b %Y') }}</td>
+                    <td style="padding:0.9rem 1.4rem;">
+                        <div style="display:flex;gap:0.4rem;justify-content:flex-end;flex-wrap:wrap;">
+                            <button class="btn-oc btn-oc-outline btn-oc-sm"
+                                    hx-post="{{ url_for('admin_bp.reset_supervisor_password', user_id=s.id) }}"
+                                    hx-target="#settings-panel" hx-swap="innerHTML"
+                                    hx-confirm="Reset password for {{ s.full_name }}?">
+                                <i class="bi bi-key"></i> Reset PW
+                            </button>
+                            <button class="btn-oc btn-oc-sm {% if s.is_active %}btn-oc-outline{% else %}btn-oc-primary{% endif %}"
+                                    hx-post="{{ url_for('admin_bp.toggle_supervisor', user_id=s.id) }}"
+                                    hx-target="#settings-panel" hx-swap="innerHTML"
+                                    hx-confirm="{% if s.is_active %}Deactivate{% else %}Activate{% endif %} {{ s.full_name }}?">
+                                <i class="bi bi-{% if s.is_active %}pause-circle{% else %}play-circle{% endif %}"></i>
+                                {% if s.is_active %}Deactivate{% else %}Activate{% endif %}
+                            </button>
+                            <button class="btn-oc btn-oc-sm"
+                                    style="background:#fef2f2;color:#b91c1c;border:1.5px solid #fecaca;"
+                                    hx-post="{{ url_for('admin_bp.delete_supervisor', user_id=s.id) }}"
+                                    hx-target="#settings-panel" hx-swap="innerHTML"
+                                    hx-confirm="Permanently delete {{ s.full_name }}? This cannot be undone.">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon"><i class="bi bi-person-badge"></i></div>
+        <p class="empty-title">No supervisors yet</p>
+        <p class="empty-text">Use the form above to create the first supervisor account.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.supervisor-row:last-child { border-bottom:none; }
+.supervisor-row:hover { background:var(--bg); }
+@media(max-width:768px){
+    div[style*="grid-template-columns:1fr 1fr auto"] { grid-template-columns:1fr !important; }
+}
+</style>

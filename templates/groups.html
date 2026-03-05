@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}My Groups - CapstoneGuard{% endblock %}
+
+{% block content %}
+<div style="max-width:1100px;margin:0 auto;padding:2rem 1.5rem;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.8rem;flex-wrap:wrap;gap:1rem;">
+        <div>
+            <h1 class="page-title">HIT200 Groups</h1>
+            <p class="page-subtitle">
+                {% if user.role.value == 'admin' %}All groups across all supervisors.
+                {% else %}Manage the groups you supervise and their student members.{% endif %}
+            </p>
+        </div>
+        <a href="{{ url_for('dashboard.dash') }}" class="btn-oc btn-oc-outline">
+            <i class="bi bi-arrow-left"></i> Dashboard
+        </a>
+    </div>
+
+    <!-- Create Group Card -->
+    <div class="oc-card" style="margin-bottom:1.4rem;">
+        <div class="oc-card-header">
+            <h2 class="oc-card-title">
+                <i class="bi bi-plus-circle" style="color:var(--green-primary);margin-right:6px;"></i>
+                Create New Group
+            </h2>
+        </div>
+        <div class="oc-card-body">
+            <form method="POST" action="{{ url_for('groups_bp.create_group') }}">
+                <div style="display:grid;grid-template-columns:1fr 1fr {% if user.role.value == 'admin' %}1fr {% endif %}auto;gap:0.75rem;align-items:end;">
+                    <div>
+                        <label class="oc-label">Group Name <span style="color:#e53e3e;">*</span></label>
+                        <input type="text" class="oc-input" name="name"
+                               placeholder="e.g. Group A, Team Phoenix" required>
+                    </div>
+                    <div>
+                        <label class="oc-label">Stream <span style="color:#e53e3e;">*</span></label>
+                        <select class="oc-select" name="stream_id" required>
+                            <option value="">Select stream…</option>
+                            {% for stream in streams %}
+                            <option value="{{ stream.id }}">{{ stream.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% if user.role.value == 'admin' %}
+                    <div>
+                        <label class="oc-label">Assign To Supervisor</label>
+                        <select class="oc-select" name="supervisor_id">
+                            <option value="">Self (admin)</option>
+                            {% for sup in supervisors_list %}
+                            <option value="{{ sup.id }}">{{ sup.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <button type="submit" class="btn-oc btn-oc-primary" style="white-space:nowrap;">
+                            <i class="bi bi-plus-lg"></i> Create Group
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Groups List -->
+    {% if groups %}
+        {% for group in groups %}
+        <div class="oc-card" style="margin-bottom:1rem;">
+            <div class="oc-card-header" style="background:var(--bg);">
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <div style="width:38px;height:38px;background:var(--green-light);border-radius:10px;
+                                display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="bi bi-people-fill" style="color:var(--green-primary);font-size:1rem;"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight:700;font-size:1rem;color:var(--text-dark);">{{ group.name }}</div>
+                        <div style="font-size:0.78rem;color:var(--text-muted);">
+                            <i class="bi bi-layers"></i> {{ group.stream.name }}
+                            &nbsp;·&nbsp;
+                            <i class="bi bi-person-badge"></i> {{ group.supervisor.full_name }}
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.6rem;">
+                    <span class="oc-badge badge-{% if group.members|length >= 5 %}rejected{% else %}approved{% endif %}">
+                        {{ group.members|length }}/5 members
+                    </span>
+                    {% if group.projects.count() == 0 %}
+                    <form method="POST" action="{{ url_for('groups_bp.delete_group', group_id=group.id) }}"
+                          onsubmit="return confirm('Delete group {{ group.name }}?')">
+                        <button type="submit" class="btn-oc btn-oc-sm"
+                                style="background:#fef2f2;color:#b91c1c;border:1.5px solid #fecaca;">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="oc-card-body">
+                <div style="display:grid;grid-template-columns:1fr 320px;gap:1.4rem;align-items:start;">
+
+                    <!-- Current Members -->
+                    <div>
+                        <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;
+                                    letter-spacing:0.06em;margin-bottom:0.75rem;">Members</div>
+                        {% if group.members %}
+                            {% for member in group.members %}
+                            <div style="display:flex;align-items:center;justify-content:space-between;
+                                        padding:0.6rem 0;border-bottom:1px solid var(--border);">
+                                <div style="display:flex;align-items:center;gap:0.65rem;">
+                                    {% if member.profile_picture %}
+                                        <img src="{{ member.profile_picture }}" alt=""
+                                             style="width:30px;height:30px;border-radius:50%;object-fit:cover;">
+                                    {% else %}
+                                        <div class="avatar-circle" style="width:30px;height:30px;font-size:0.75rem;">
+                                            {{ member.full_name[0].upper() }}
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <div style="font-weight:600;font-size:0.88rem;color:var(--text-dark);">{{ member.full_name }}</div>
+                                        <div style="font-size:0.75rem;color:var(--text-muted);">{{ member.email }}</div>
+                                    </div>
+                                </div>
+                                <form method="POST"
+                                      action="{{ url_for('groups_bp.remove_member', group_id=group.id, student_id=member.id) }}"
+                                      onsubmit="return confirm('Remove {{ member.full_name }} from this group?')">
+                                    <button type="submit" class="btn-oc btn-oc-sm btn-oc-outline"
+                                            title="Remove member">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p style="font-size:0.85rem;color:var(--text-muted);padding:0.5rem 0;">
+                                No members yet. Add students using the form on the right.
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Add Member -->
+                    {% if group.members|length < 5 %}
+                    <div style="background:var(--bg);border-radius:10px;padding:1.1rem;">
+                        <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;
+                                    letter-spacing:0.06em;margin-bottom:0.75rem;">Add Student</div>
+                        <form method="POST" action="{{ url_for('groups_bp.add_member', group_id=group.id) }}">
+                            <div style="display:flex;flex-direction:column;gap:0.6rem;">
+                                <select class="oc-select" name="student_id" required
+                                        hx-get="{{ url_for('groups_bp.available_students', group_id=group.id) }}"
+                                        hx-trigger="load"
+                                        hx-target="this"
+                                        hx-swap="innerHTML">
+                                    <option value="">Loading students…</option>
+                                </select>
+                                <button type="submit" class="btn-oc btn-oc-primary" style="justify-content:center;">
+                                    <i class="bi bi-person-plus"></i> Add to Group
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:1.1rem;
+                                display:flex;align-items:center;gap:0.75rem;">
+                        <i class="bi bi-exclamation-triangle" style="color:#92400e;font-size:1.1rem;flex-shrink:0;"></i>
+                        <p style="font-size:0.85rem;color:#92400e;margin:0;">
+                            This group is full (5/5 members).
+                        </p>
+                    </div>
+                    {% endif %}
+
+                </div>
+
+                <!-- Submitted Projects -->
+                {% if group.projects.count() > 0 %}
+                <div style="margin-top:1.2rem;padding-top:1.2rem;border-top:1px solid var(--border);">
+                    <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;
+                                letter-spacing:0.06em;margin-bottom:0.6rem;">Submitted Projects</div>
+                    {% for proj in group.projects.all() %}
+                    <a href="{{ url_for('projects.project_detail', project_id=proj.id) }}"
+                       style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;
+                              text-decoration:none;color:var(--text-dark);border-bottom:1px solid var(--border);">
+                        <span style="font-size:0.88rem;font-weight:600;">{{ proj.title }}</span>
+                        <span class="oc-badge badge-{{ proj.status.value }}">{{ proj.status.value|replace('_',' ')|title }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="oc-card">
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="bi bi-people" style="font-size:1.6rem;color:var(--green-primary);"></i>
+                </div>
+                <p class="empty-title">No groups yet</p>
+                <p class="empty-text">Create your first HIT200 group using the form above.</p>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+<style>
+@media(max-width:900px){
+    div[style*="grid-template-columns:1fr 320px"] { grid-template-columns:1fr !important; }
+    div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns:1fr !important; }
+}
+</style>
+{% endblock %}

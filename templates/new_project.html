@@ -17,7 +17,61 @@
             <div class="oc-card-body">
                 <form method="POST" action="{{ url_for('projects.new_project') }}">
 
+                    <!-- Project Category -->
                     <div class="field">
+                        <label class="oc-label">Project Category <span style="color:#e53e3e;">*</span></label>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;" id="categoryCards">
+                            <label style="cursor:pointer;">
+                                <input type="radio" name="category" value="hit400"
+                                       id="cat400" checked style="display:none;"
+                                       onchange="toggleCategory()">
+                                <div class="cat-card" id="card400" style="
+                                    border:2px solid var(--green-primary);background:var(--green-light);
+                                    border-radius:10px;padding:1rem;transition:all 0.15s;">
+                                    <div style="font-weight:700;font-size:0.95rem;color:var(--green-primary);margin-bottom:0.2rem;">
+                                        <i class="bi bi-person-fill"></i> HIT400
+                                    </div>
+                                    <div style="font-size:0.78rem;color:var(--text-muted);">Solo project — individual submission</div>
+                                </div>
+                            </label>
+                            <label style="cursor:pointer;">
+                                <input type="radio" name="category" value="hit200"
+                                       id="cat200" style="display:none;"
+                                       onchange="toggleCategory()">
+                                <div class="cat-card" id="card200" style="
+                                    border:2px solid var(--border);background:var(--white);
+                                    border-radius:10px;padding:1rem;transition:all 0.15s;">
+                                    <div style="font-weight:700;font-size:0.95rem;color:var(--text-dark);margin-bottom:0.2rem;">
+                                        <i class="bi bi-people-fill"></i> HIT200
+                                    </div>
+                                    <div style="font-size:0.78rem;color:var(--text-muted);">Team project — requires a supervisor group</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Group selector (HIT200 only) -->
+                    <div class="field" id="groupField" style="display:none;margin-top:1rem;">
+                        <label class="oc-label" for="group_id">Your Group <span style="color:#e53e3e;">*</span></label>
+                        {% if groups %}
+                        <select class="oc-select" id="group_id" name="group_id">
+                            <option value="">Select your group…</option>
+                            {% for g in groups %}
+                            <option value="{{ g.id }}">{{ g.name }} — {{ g.stream.name }} (supervised by {{ g.supervisor.full_name }})</option>
+                            {% endfor %}
+                        </select>
+                        <p class="oc-help">Your supervisor has added you to this group.</p>
+                        {% else %}
+                        <div style="padding:0.8rem 1rem;background:#fef3c7;border:1px solid #fde68a;border-radius:9px;
+                                    font-size:0.85rem;color:#92400e;">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            You are not currently assigned to any HIT200 group.
+                            Please contact your supervisor to be added.
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="field" style="margin-top:1rem;">
                         <label class="oc-label" for="title">Project Title <span style="color:#e53e3e;">*</span></label>
                         <input type="text"
                                class="oc-input oc-input-lg"
@@ -185,6 +239,29 @@ function resolveStream() {
     } else {
         hiddenInput.value = '';
         status.innerHTML  = '<span style="color:#e53e3e;"><i class="bi bi-exclamation-circle"></i> No stream found for ' + key + '. Contact admin.</span>';
+    }
+}
+
+function toggleCategory() {
+    const is200 = document.getElementById('cat200').checked;
+    document.getElementById('groupField').style.display = is200 ? 'block' : 'none';
+
+    const card400 = document.getElementById('card400');
+    const card200 = document.getElementById('card200');
+    if (is200) {
+        card200.style.border = '2px solid var(--green-primary)';
+        card200.style.background = 'var(--green-light)';
+        card200.querySelector('div').style.color = 'var(--green-primary)';
+        card400.style.border = '2px solid var(--border)';
+        card400.style.background = 'var(--white)';
+        card400.querySelector('div').style.color = 'var(--text-dark)';
+    } else {
+        card400.style.border = '2px solid var(--green-primary)';
+        card400.style.background = 'var(--green-light)';
+        card400.querySelector('div').style.color = 'var(--green-primary)';
+        card200.style.border = '2px solid var(--border)';
+        card200.style.background = 'var(--white)';
+        card200.querySelector('div').style.color = 'var(--text-dark)';
     }
 }
 </script>

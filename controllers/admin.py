@@ -1,6 +1,6 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for, session
 from controllers.dashboard import login_required, get_current_user
-from models.db import User, UserRole, db
+from models.db import User, UserRole, Group, Stream, db
 import secrets
 import string
 
@@ -50,6 +50,17 @@ def partial_reviewers():
     reviewers = User.query.filter_by(role=UserRole.REVIEWER)\
         .order_by(User.created_at.desc()).all()
     return render_template('partials/settings_reviewers.html', reviewers=reviewers)
+
+
+@admin_bp.route('/admin/partials/supervisors')
+@login_required
+@admin_required
+def partial_supervisors():
+    supervisors = User.query.filter_by(role=UserRole.SUPERVISOR)\
+        .order_by(User.created_at.desc()).all()
+    streams = Stream.query.filter_by(is_active=True).order_by(Stream.name).all()
+    return render_template('partials/settings_supervisors.html',
+                           supervisors=supervisors, streams=streams)
 
 
 @admin_bp.route('/admin/partials/users')
@@ -253,6 +264,96 @@ def change_user_role(user_id):
         current_user=current_user,
         roles=UserRole,
     )
+
+
+# ── SUPERVISOR ACTIONS ────────────────────────────────────────────────────────
+
+def _render_supervisors():
+    supervisors = User.query.filter_by(role=UserRole.SUPERVISOR)\
+        .order_by(User.created_at.desc()).all()
+    streams = Stream.query.filter_by(is_active=True).order_by(Stream.name).all()
+    return render_template('partials/settings_supervisors.html',
+                           supervisors=supervisors, streams=streams)
+
+
+@admin_bp.route('/admin/supervisors/create', methods=['POST'])
+@login_required
+@admin_required
+def create_supervisor():
+    full_name = request.form.get('full_name', '').strip()
+    email     = request.form.get('email', '').strip().lower()
+
+    if not full_name or not email:
+        flash('Full name and email are required.', 'danger')
+    elif User.query.filter_by(email=email).first():
+        flash(f'An account with "{email}" already exists.', 'danger')
+    else:
+        temp_password = generate_temp_password()
+        supervisor = User(
+            full_name=full_name,
+            email=email,
+            role=UserRole.SUPERVISOR,
+            is_active=True,
+            is_verified=True,
+        )
+        supervisor.set_password(temp_password)
+        db.session.add(supervisor)
+        db.session.commit()
+        flash(
+            f'Supervisor account created for {full_name}. '
+            f'Temporary password: {temp_password} — share this securely.',
+            'success'
+        )
+    return _render_supervisors()
+
+
+@admin_bp.route('/admin/supervisors/<int:user_id>/toggle', methods=['POST'])
+@login_required
+@admin_required
+def toggle_supervisor(user_id):
+    supervisor = User.query.get_or_404(user_id)
+    if supervisor.role != UserRole.SUPERVISOR:
+        flash('Not a supervisor account.', 'danger')
+    else:
+        supervisor.is_active = not supervisor.is_active
+        db.session.commit()
+        state = 'activated' if supervisor.is_active else 'deactivated'
+        flash(f'{supervisor.full_name} has been {state}.', 'success')
+    return _render_supervisors()
+
+
+@admin_bp.route('/admin/supervisors/<int:user_id>/reset-password', methods=['POST'])
+@login_required
+@admin_required
+def reset_supervisor_password(user_id):
+    supervisor = User.query.get_or_404(user_id)
+    if supervisor.role != UserRole.SUPERVISOR:
+        flash('Not a supervisor account.', 'danger')
+    else:
+        temp_password = generate_temp_password()
+        supervisor.set_password(temp_password)
+        db.session.commit()
+        flash(
+            f'Password reset for {supervisor.full_name}. '
+            f'New temporary password: {temp_password} — share this securely.',
+            'success'
+        )
+    return _render_supervisors()
+
+
+@admin_bp.route('/admin/supervisors/<int:user_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_supervisor(user_id):
+    supervisor = User.query.get_or_404(user_id)
+    if supervisor.role != UserRole.SUPERVISOR:
+        flash('Not a supervisor account.', 'danger')
+    else:
+        name = supervisor.full_name
+        db.session.delete(supervisor)
+        db.session.commit()
+        flash(f'Supervisor account for {name} permanently deleted.', 'success')
+    return _render_supervisors()
 
 
 # ── LEGACY REDIRECT — keeps old direct links working ────────────────────────

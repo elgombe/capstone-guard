@@ -846,6 +846,11 @@
             <a class="nav-link-item" href="{{ url_for('projects.projects') }}">
                 <i class="bi bi-folder"></i> Projects
             </a>
+            {% if session.user_role in ['supervisor', 'admin'] %}
+            <a class="nav-link-item" href="{{ url_for('groups_bp.my_groups') }}">
+                <i class="bi bi-people"></i> Groups
+            </a>
+            {% endif %}
             <a class="nav-link-item" href="{{ url_for('notifications_bp.notifications') }}">
                 <i class="bi bi-bell"></i> Notifications
                 {% if unread_count|default(0) > 0 %}

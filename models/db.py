@@ -28,6 +28,13 @@ class UserRole(enum.Enum):
     STUDENT = "student"
     ADMIN = "admin"
     REVIEWER = "reviewer"
+    SUPERVISOR = "supervisor"
+
+
+class ProjectCategory(enum.Enum):
+    """Project category — determines workflow"""
+    HIT200 = "hit200"   # Team project (up to 5), requires a supervisor group
+    HIT400 = "hit400"   # Solo project, no group needed
 
 
 # Models
@@ -135,6 +142,38 @@ class Stream(db.Model):
         return f'<Stream {self.name}>'
 
 
+# Association table: which students belong to which HIT200 group
+group_members = db.Table(
+    'group_members',
+    db.Column('group_id',  db.Integer, db.ForeignKey('groups.id'),  primary_key=True),
+    db.Column('student_id', db.Integer, db.ForeignKey('users.id'),   primary_key=True),
+)
+
+
+class Group(db.Model):
+    """
+    HIT200 project group — supervised team of up to 5 students.
+    A supervisor can manage multiple groups.
+    """
+    __tablename__ = 'groups'
+
+    id            = db.Column(db.Integer, primary_key=True)
+    name          = db.Column(db.String(100), nullable=False)
+    supervisor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    stream_id     = db.Column(db.Integer, db.ForeignKey('streams.id'), nullable=False, index=True)
+    is_active     = db.Column(db.Boolean, default=True, nullable=False)
+    created_at    = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    supervisor = db.relationship('User', foreign_keys=[supervisor_id], backref='supervised_groups')
+    stream     = db.relationship('Stream', backref='groups')
+    members    = db.relationship('User', secondary=group_members, backref='groups')
+    projects   = db.relationship('Project', foreign_keys='Project.group_id', backref='group', lazy='dynamic')
+
+    def __repr__(self):
+        return f'<Group {self.name}>'
+
+
 class Project(db.Model):
     """
     Project submission model - core entity
@@ -146,9 +185,15 @@ class Project(db.Model):
     # Project details
     title = db.Column(db.String(200), nullable=False, index=True)
     description = db.Column(db.Text, nullable=False)
-    
+
+    # Category: HIT200 (team) or HIT400 (solo)
+    category  = db.Column(db.Enum(ProjectCategory), default=ProjectCategory.HIT400, nullable=False, index=True)
+
+    # For HIT200 projects — which group submitted this
+    group_id  = db.Column(db.Integer, db.ForeignKey('groups.id'), nullable=True, index=True)
+
     # Foreign keys
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    user_id   = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     stream_id = db.Column(db.Integer, db.ForeignKey('streams.id'), nullable=False, index=True)
     
     # Status and workflow
@@ -529,6 +574,8 @@ __all__ = [
     'db',
     'User',
     'Stream',
+    'Group',
+    'group_members',
     'Project',
     'SimilarityRecord',
     'Comment',
@@ -536,6 +583,7 @@ __all__ = [
     'Notification',
     'AuditLog',
     'ProjectStatus',
+    'ProjectCategory',
     'UserRole',
     'init_db'
 ]
