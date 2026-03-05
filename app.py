@@ -2,7 +2,6 @@ from datetime import datetime
 from flask import Flask, render_template
 from models.db import db, init_db
 from controllers.auth import auth_bp, init_oauth
-from controllers.index import index_bp
 from controllers.notifications import notifications_bp
 from controllers.projects import projects_bp
 from controllers.admin import admin_bp
@@ -14,7 +13,6 @@ from config import Config
 app = Flask(__name__)
 app.config.from_object(Config)
 
-app.register_blueprint(index_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(dashboard)
 app.register_blueprint(projects_bp)
