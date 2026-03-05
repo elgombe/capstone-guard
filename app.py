@@ -3,6 +3,7 @@ from flask import Flask, render_template
 from models.db import db, init_db
 from controllers.auth import auth_bp, init_oauth
 from controllers.notifications import notifications_bp
+from controllers.groups import groups_bp
 from controllers.projects import projects_bp
 from controllers.admin import admin_bp
 from controllers.dashboard import dashboard
@@ -19,6 +20,7 @@ app.register_blueprint(projects_bp)
 app.register_blueprint(notifications_bp)
 app.register_blueprint(htmx_bp)
 app.register_blueprint(admin_bp)
+app.register_blueprint(groups_bp)
 
 init_oauth(app)
 init_db(app)
