@@ -22,8 +22,7 @@
     </div>
     <div class="oc-card-body">
         <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:1.2rem;">
-            Create a HIT200 supervisor (lecturer) account. They can log in, create groups, and assign students.
-            A temporary password will be generated — share it securely.
+            Create a HIT200 supervisor (lecturer) account. They will log in using their institutional Google account.
         </p>
         <form hx-post="{{ url_for('admin_bp.create_supervisor') }}"
               hx-target="#settings-panel"
@@ -99,12 +98,6 @@
                     <td style="padding:0.9rem 1rem;color:var(--text-muted);">{{ s.created_at.strftime('%d %b %Y') }}</td>
                     <td style="padding:0.9rem 1.4rem;">
                         <div style="display:flex;gap:0.4rem;justify-content:flex-end;flex-wrap:wrap;">
-                            <button class="btn-oc btn-oc-outline btn-oc-sm"
-                                    hx-post="{{ url_for('admin_bp.reset_supervisor_password', user_id=s.id) }}"
-                                    hx-target="#settings-panel" hx-swap="innerHTML"
-                                    hx-confirm="Reset password for {{ s.full_name }}?">
-                                <i class="bi bi-key"></i> Reset PW
-                            </button>
                             <button class="btn-oc btn-oc-sm {% if s.is_active %}btn-oc-outline{% else %}btn-oc-primary{% endif %}"
                                     hx-post="{{ url_for('admin_bp.toggle_supervisor', user_id=s.id) }}"
                                     hx-target="#settings-panel" hx-swap="innerHTML"

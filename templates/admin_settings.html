@@ -21,23 +21,13 @@
         <div class="oc-card" style="overflow:visible;position:sticky;top:74px;">
             <div style="padding:0.5rem;" id="settings-nav">
 
-                <a href="{{ url_for('admin_bp.partial_reviewers') }}"
-                   hx-get="{{ url_for('admin_bp.partial_reviewers') }}"
-                   hx-target="#settings-panel"
-                   hx-swap="innerHTML"
-                   hx-push-url="{{ url_for('admin_bp.settings') }}?tab=reviewers"
-                   onclick="setActiveTab(this)"
-                   class="settings-nav-item is-active">
-                    <i class="bi bi-person-badge"></i> Reviewer Accounts
-                </a>
-
                 <a href="{{ url_for('admin_bp.partial_supervisors') }}"
                    hx-get="{{ url_for('admin_bp.partial_supervisors') }}"
                    hx-target="#settings-panel"
                    hx-swap="innerHTML"
                    hx-push-url="{{ url_for('admin_bp.settings') }}?tab=supervisors"
                    onclick="setActiveTab(this)"
-                   class="settings-nav-item">
+                   class="settings-nav-item is-active">
                     <i class="bi bi-person-workspace"></i> Supervisors
                 </a>
 
@@ -51,22 +41,12 @@
                     <i class="bi bi-people"></i> Manage Users
                 </a>
 
-                <a href="{{ url_for('admin_bp.partial_change_password') }}"
-                   hx-get="{{ url_for('admin_bp.partial_change_password') }}"
-                   hx-target="#settings-panel"
-                   hx-swap="innerHTML"
-                   hx-push-url="{{ url_for('admin_bp.settings') }}?tab=password"
-                   onclick="setActiveTab(this)"
-                   class="settings-nav-item">
-                    <i class="bi bi-lock"></i> Change Password
-                </a>
-
             </div>
         </div>
 
         <!-- Dynamic Panel — loaded by HTMX -->
         <div id="settings-panel"
-             hx-get="{{ url_for('admin_bp.partial_' + (active_tab or 'reviewers')) }}"
+             hx-get="{{ url_for('admin_bp.partial_' + (active_tab or 'supervisors')) }}"
              hx-trigger="load"
              hx-swap="innerHTML">
             <div style="display:flex;align-items:center;justify-content:center;padding:4rem;color:var(--text-muted);">
@@ -116,8 +96,8 @@ function setActiveTab(el) {
 
 // Restore correct active tab if user lands directly via ?tab=
 (function() {
-    const tab = new URLSearchParams(location.search).get('tab') || 'reviewers';
-    const map = { reviewers: 0, supervisors: 1, users: 2, password: 3 };
+    const tab = new URLSearchParams(location.search).get('tab') || 'supervisors';
+    const map = { supervisors: 0, users: 1 };
     const items = document.querySelectorAll('.settings-nav-item');
     items.forEach(a => a.classList.remove('is-active'));
     if (items[map[tab]] !== undefined) items[map[tab]].classList.add('is-active');

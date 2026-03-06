@@ -60,7 +60,7 @@
             </div>
             <div>
                 <div class="stat-value" style="font-size:1rem;padding-top:2px;">Settings</div>
-                <div class="stat-label">Manage Reviewers</div>
+                <div class="stat-label">Manage Supervisors</div>
             </div>
         </a>
         {% endif %}
@@ -74,7 +74,7 @@
         </div>
         <div class="oc-card-body" style="display:flex;gap:0.75rem;flex-wrap:wrap;">
             <a href="{{ url_for('admin_bp.settings') }}" class="btn-oc btn-oc-outline">
-                <i class="bi bi-person-badge"></i> Manage Reviewers
+                <i class="bi bi-person-badge"></i> Manage Supervisors
             </a>
             <a href="{{ url_for('projects.projects') }}?status=pending" class="btn-oc btn-oc-outline">
                 <i class="bi bi-hourglass-split"></i> Pending Reviews
