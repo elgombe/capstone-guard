@@ -8,6 +8,7 @@ from controllers.projects import projects_bp
 from controllers.admin import admin_bp
 from controllers.dashboard import dashboard
 from controllers.htmx import htmx_bp
+from controllers.chapters import chapters_bp
 
 from config import Config
 
@@ -21,6 +22,7 @@ app.register_blueprint(notifications_bp)
 app.register_blueprint(htmx_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(groups_bp)
+app.register_blueprint(chapters_bp)
 
 init_oauth(app)
 init_db(app)

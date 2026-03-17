@@ -3,6 +3,8 @@ from controllers.dashboard import login_required, get_current_user
 from datetime import datetime
 from dotenv import load_dotenv
 from .similarity import find_similar_projects          # ← OpenAI-powered
+from models.db import Chapter, ChapterReview, ChapterStatus, CHAPTER_DEFINITIONS
+from models.db import create_chapters_for_project
 
 load_dotenv()
 
@@ -170,7 +172,9 @@ def new_project():
         )
 
         if similar_projects:
+            # Flag duplicate but still let them proceed after review
             project.is_flagged_duplicate = True
+            project.ai_check_passed      = False   # ← NEW
 
             for similar in similar_projects[:5]:
                 record = SimilarityRecord(
@@ -187,7 +191,7 @@ def new_project():
                 title='Similar Projects Found',
                 message=(
                     f'We found {len(similar_projects)} project(s) similar to '
-                    f'"{project.title}". Please review them before proceeding.'
+                    f'"{project.title}". An admin will review before chapters unlock.'
                 ),
                 notification_type='duplicate_warning',
                 related_project_id=project.id,
@@ -195,15 +199,31 @@ def new_project():
 
             db.session.commit()
             flash(
-                f'Project submitted! Warning: {len(similar_projects)} similar '
-                f'project(s) were found — please review them.',
+                f'Project submitted! However, {len(similar_projects)} similar '
+                f'project(s) were found. An administrator must clear the duplicate '
+                f'flag before you can begin chapter submissions.',
                 'warning'
             )
-        else:
-            db.session.commit()
-            flash('Project submitted successfully!', 'success')
+            # Stay on project_detail; no chapters yet
+            return redirect(url_for('projects.project_detail', project_id=project.id))
 
-        return redirect(url_for('projects.project_detail', project_id=project.id))
+        else:
+            # ── AI check passed: scaffold chapters ────────────────────────
+            project.ai_check_passed      = True   # ← NEW
+            project.chapters_unlocked    = True   # ← NEW
+            db.session.commit()
+
+            create_chapters_for_project(project.id)  # ← NEW: creates 6 chapter rows
+
+            flash(
+                'Project submitted! AI similarity check passed. '
+                'You can now begin submitting your chapters.',
+                'success'
+            )
+            # Redirect straight to chapter overview ← CHANGED
+            return redirect(url_for('chapters_bp.chapter_overview',
+                                    project_id=project.id))
+
 
     # GET
     user       = get_current_user()
@@ -365,3 +385,37 @@ def add_comment(project_id):
 
     flash('Comment added successfully!', 'success')
     return redirect(url_for('projects.project_detail', project_id=project_id))
+
+
+@projects_bp.route('/projects/<int:project_id>/clear-duplicate', methods=['POST'])
+@login_required
+def clear_duplicate_flag(project_id):
+    """Admin clears duplicate flag and unlocks chapters."""
+    from controllers.dashboard import get_current_user
+    user = get_current_user()
+    if user.role not in [UserRole.ADMIN]:
+        flash('Admin access required.', 'danger')
+        return redirect(url_for('projects.project_detail', project_id=project_id))
+
+    project = Project.query.get_or_404(project_id)
+    project.is_flagged_duplicate = False
+    project.ai_check_passed      = True
+    project.chapters_unlocked    = True
+    db.session.commit()
+
+    # Create chapters if not yet created
+    from models.db import Chapter, create_chapters_for_project
+    if Chapter.query.filter_by(project_id=project_id).count() == 0:
+        create_chapters_for_project(project_id)
+
+    create_notification(
+        user_id=project.user_id,
+        title='Duplicate Flag Cleared',
+        message=(f'Your project "{project.title}" has been cleared. '
+                 f'You may now begin submitting your chapters.'),
+        notification_type='duplicate_cleared',
+        related_project_id=project.id
+    )
+    db.session.commit()
+    flash('Duplicate flag cleared. Chapters unlocked.', 'success')
+    return redirect(url_for('chapters_bp.chapter_overview', project_id=project_id))

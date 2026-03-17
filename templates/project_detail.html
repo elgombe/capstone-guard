@@ -17,18 +17,50 @@
                                 <span><i class="bi bi-person"></i> {{ project.author.full_name }}</span>
                                 <span><i class="bi bi-calendar"></i> {{ project.submitted_at.strftime('%B %d, %Y') }}</span>
                                 <span><i class="bi bi-folder"></i> {{ project.stream.name }}</span>
+                                {% if project.category %}
+                                <span class="oc-badge" style="background:#ede9fe;color:#6d28d9;">
+                                    {{ project.category.value | upper }}
+                                </span>
+                                {% endif %}
                             </div>
                         </div>
                         <span class="oc-badge badge-{{ project.status.value }}" style="font-size:0.82rem;padding:0.3rem 0.85rem;">{{ project.status.value|title }}</span>
                     </div>
 
-                    {% if can_edit %}
-                    <div style="margin-bottom:1rem;">
+                    <!-- Action Buttons Row -->
+                    <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-bottom:1rem;">
+                        {# Chapter workflow CTA #}
+                        {% if project.ai_check_passed and project.chapters_unlocked %}
+                        <a href="{{ url_for('chapters_bp.chapter_overview', project_id=project.id) }}"
+                           class="btn-oc btn-oc-primary">
+                            <i class="bi bi-journal-text"></i> View Chapter Submissions
+                        </a>
+                        {% elif project.is_flagged_duplicate and not project.ai_check_passed %}
+                        <div style="padding:0.55rem 0.9rem;background:#fef9c3;border:1px solid #fde68a;
+                                    border-radius:8px;font-size:0.82rem;color:#78350f;display:flex;align-items:center;gap:6px;">
+                            <i class="bi bi-hourglass-split"></i>
+                            Chapters locked — awaiting admin review of similarity flag.
+                        </div>
+                        {% endif %}
+
+                        {# Edit #}
+                        {% if can_edit %}
                         <a href="{{ url_for('projects.edit_project', project_id=project.id) }}" class="btn-oc btn-oc-outline btn-oc-sm">
                             <i class="bi bi-pencil"></i> Edit Project
                         </a>
+                        {% endif %}
+
+                        {# Admin: clear duplicate #}
+                        {% if session.user_role == 'admin' and project.is_flagged_duplicate and not project.ai_check_passed %}
+                        <form method="POST" action="{{ url_for('projects.clear_duplicate_flag', project_id=project.id) }}"
+                              onsubmit="return confirm('Clear duplicate flag and unlock chapters for this project?')">
+                            <button type="submit" class="btn-oc btn-oc-sm"
+                                    style="background:#dcfce7;color:#166534;border:1.5px solid #86efac;">
+                                <i class="bi bi-shield-check"></i> Clear Flag & Unlock Chapters
+                            </button>
+                        </form>
+                        {% endif %}
                     </div>
-                    {% endif %}
 
                     <div class="oc-section">
                         <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.6rem;">Description</div>
@@ -65,6 +97,54 @@
                     {% endif %}
                 </div>
             </div>
+
+            {# ── Chapter Progress Snapshot ── #}
+            {% if project.ai_check_passed and project.chapters_unlocked %}
+            {% set chapters = project.chapters.order_by('order').all() %}
+            {% if chapters %}
+            <div class="oc-card" style="margin-bottom:1.2rem;">
+                <div class="oc-card-header" style="display:flex;align-items:center;justify-content:space-between;">
+                    <h2 class="oc-card-title">
+                        <i class="bi bi-journal-text" style="color:var(--green-primary);margin-right:6px;"></i>
+                        Chapter Progress
+                    </h2>
+                    <a href="{{ url_for('chapters_bp.chapter_overview', project_id=project.id) }}"
+                       class="btn-oc btn-oc-outline btn-oc-sm">View All</a>
+                </div>
+                <div style="padding:0.75rem 0;">
+                    {% for ch in chapters %}
+                    <a href="{{ url_for('chapters_bp.chapter_detail', project_id=project.id, chapter_order=ch.order) if ch.status.value != 'locked' else '#' }}"
+                       style="display:flex;align-items:center;gap:0.75rem;padding:0.55rem 1.3rem;text-decoration:none;
+                              {% if ch.status.value == 'locked' %}opacity:0.45;pointer-events:none;{% endif %}
+                              border-bottom:{% if not loop.last %}1px solid var(--border){% else %}none{% endif %};">
+                        <span style="
+                            width:24px;height:24px;border-radius:50%;flex-shrink:0;
+                            display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;
+                            background:{% if ch.status.value == 'approved' %}#dcfce7{% elif ch.status.value == 'needs_revision' %}#fee2e2{% elif ch.status.value in ['submitted','under_review'] %}#dbeafe{% elif ch.status.value == 'unlocked' %}var(--green-light){% else %}var(--bg){% endif %};
+                            color:{% if ch.status.value == 'approved' %}#16a34a{% elif ch.status.value == 'needs_revision' %}#dc2626{% elif ch.status.value in ['submitted','under_review'] %}#2563eb{% elif ch.status.value == 'unlocked' %}var(--green-primary){% else %}var(--text-muted){% endif %};
+                            border:1.5px solid {% if ch.status.value == 'approved' %}#86efac{% elif ch.status.value == 'needs_revision' %}#fecaca{% elif ch.status.value in ['submitted','under_review'] %}#93c5fd{% elif ch.status.value == 'unlocked' %}var(--green-primary){% else %}var(--border){% endif %};
+                        ">
+                            {% if ch.status.value == 'approved' %}<i class="bi bi-check-lg"></i>
+                            {% elif ch.status.value == 'locked' %}<i class="bi bi-lock-fill"></i>
+                            {% else %}{{ ch.order }}{% endif %}
+                        </span>
+                        <span style="flex:1;font-size:0.86rem;font-weight:{% if ch.status.value == 'unlocked' %}600{% else %}500{% endif %};
+                                     color:var(--text-dark);">{{ ch.title }}</span>
+                        <span class="oc-badge
+                            {% if ch.status.value == 'approved' %}badge-approved
+                            {% elif ch.status.value == 'needs_revision' %}badge-rejected
+                            {% elif ch.status.value in ['submitted','under_review'] %}badge-under_review
+                            {% elif ch.status.value == 'unlocked' %}badge-pending
+                            {% else %}badge-secondary{% endif %}
+                            " style="font-size:0.68rem;">
+                            {{ ch.status.value | replace('_',' ') | title }}
+                        </span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
 
             <!-- Similar Projects Warning -->
             {% if similar_projects %}
@@ -106,13 +186,11 @@
                     <h2 class="oc-card-title">Comments ({{ comments|length }})</h2>
                 </div>
                 <div class="oc-card-body">
-                    <!-- Post comment -->
                     <form method="POST" action="{{ url_for('projects.add_comment', project_id=project.id) }}" style="margin-bottom:1.5rem;">
                         <label class="oc-label">Add a comment</label>
                         <textarea class="oc-textarea" name="content" rows="3" required placeholder="Share your thoughts…" style="margin-bottom:0.6rem;"></textarea>
                         <button type="submit" class="btn-oc btn-oc-primary btn-oc-sm">Post Comment</button>
                     </form>
-
                     {% if comments %}
                         {% for comment in comments %}
                         <div class="comment-item">
@@ -137,7 +215,6 @@
 
         <!-- SIDEBAR -->
         <div>
-            <!-- Status Update (admin/reviewer) -->
             {% if session.user_role in ['admin', 'reviewer'] %}
             <div class="oc-card" style="margin-bottom:1rem;">
                 <div class="oc-card-header"><h2 class="oc-card-title">Update Status</h2></div>
@@ -161,7 +238,6 @@
             </div>
             {% endif %}
 
-            <!-- Project Info -->
             <div class="oc-card">
                 <div class="oc-card-header"><h2 class="oc-card-title">Project Info</h2></div>
                 <div class="oc-card-body">
@@ -175,8 +251,22 @@
                         <div style="font-weight:600;font-size:0.9rem;color:var(--text-dark);">{{ value }}</div>
                     </div>
                     {% endfor %}
-                    {% if project.reviewer %}
+
+                    {# HIT200: group info #}
+                    {% if project.category and project.category.value == 'hit200' and project.group %}
+                    <div style="margin-bottom:0.9rem;">
+                        <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.2rem;">Group</div>
+                        <div style="font-weight:600;font-size:0.9rem;color:var(--text-dark);">{{ project.group.name }}</div>
+                        <div style="font-size:0.78rem;color:var(--text-muted);">{{ project.group.members | length }} member(s)</div>
+                    </div>
                     <div>
+                        <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.2rem;">Supervisor</div>
+                        <div style="font-weight:600;font-size:0.9rem;color:var(--text-dark);">{{ project.group.supervisor.full_name }}</div>
+                    </div>
+                    {% endif %}
+
+                    {% if project.reviewer %}
+                    <div style="margin-top:0.9rem;">
                         <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.2rem;">Reviewed By</div>
                         <div style="font-weight:600;font-size:0.9rem;color:var(--text-dark);">{{ project.reviewer.full_name }}</div>
                     </div>
@@ -184,7 +274,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 

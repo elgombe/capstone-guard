@@ -35,8 +35,11 @@ def my_groups():
     streams = Stream.query.filter_by(is_active=True).order_by(Stream.name).all()
     students = User.query.filter_by(role=UserRole.STUDENT, is_active=True)\
         .order_by(User.full_name).all()
+    supervisors_list = User.query.filter_by(role=UserRole.SUPERVISOR, is_active=True)\
+        .order_by(User.full_name).all()
     return render_template('groups.html',
-                           groups=groups, streams=streams, students=students, user=user)
+                           groups=groups, streams=streams, students=students,
+                           supervisors_list=supervisors_list, user=user)
 
 
 @groups_bp.route('/groups/create', methods=['POST'])

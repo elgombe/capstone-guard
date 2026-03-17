@@ -266,6 +266,193 @@ class Project(db.Model):
     
     def __repr__(self):
         return f'<Project {self.title}>'
+    
+# ── STEP 1 & 2  ──────────────────────────────────────────────────────────────
+# Paste inside your db.py after ProjectCategory enum
+
+import enum
+
+class ChapterStatus(enum.Enum):
+    """Lifecycle of a single chapter submission"""
+    LOCKED        = "locked"        # not yet unlocked
+    UNLOCKED      = "unlocked"      # student may submit
+    SUBMITTED     = "submitted"     # student has submitted, awaiting review
+    UNDER_REVIEW  = "under_review"  # supervisor actively reviewing
+    NEEDS_REVISION= "needs_revision"# supervisor returned feedback
+    APPROVED      = "approved"      # supervisor approved → next unlocked
+
+
+# ── STEP 3  ──────────────────────────────────────────────────────────────────
+# Chapters meta-table (one row per chapter slot per project)
+
+CHAPTER_DEFINITIONS = [
+    # (order, slug, display_name, description_hint)
+    (1, "introduction",          "Chapter 1 – Introduction",           "Background, problem statement, objectives, scope and significance."),
+    (2, "requirements_analysis", "Chapter 2 – Requirements Analysis",  "Functional / non-functional requirements, use-case diagrams, stakeholder analysis."),
+    (3, "design",                "Chapter 3 – System Design",          "Architecture, ER diagrams, UI wireframes, technology justification."),
+    (4, "implementation",        "Chapter 4 – Implementation",         "Code walk-through, screenshots, key algorithms, deployment details."),
+    (5, "system_testing",        "Chapter 5 – System Testing",         "Test plan, test cases, results, bug tracking, user acceptance."),
+    (6, "conclusion",            "Chapter 6 – Conclusion",             "Summary, achievements, limitations, future work, recommendations."),
+]
+
+
+class Chapter(db.Model):
+    """
+    One chapter slot per project.  Created automatically when a
+    project passes the AI similarity check (step 0).
+
+    Chapter 1 starts UNLOCKED; chapters 2-6 start LOCKED.
+    Each chapter is unlocked when its predecessor is APPROVED.
+    """
+    __tablename__ = 'chapters'
+
+    id         = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'),
+                           nullable=False, index=True)
+
+    # Which chapter (1-6)
+    order      = db.Column(db.Integer, nullable=False)           # 1..6
+    slug       = db.Column(db.String(50), nullable=False)        # e.g. 'introduction'
+    title      = db.Column(db.String(120), nullable=False)       # display name
+
+    # Current state
+    status     = db.Column(db.Enum(ChapterStatus),
+                           default=ChapterStatus.LOCKED,
+                           nullable=False, index=True)
+
+    # Student's latest submission text / content
+    content    = db.Column(db.Text, nullable=True)
+
+    # Optional file attachment (PDF, DOCX, etc.)
+    file_url   = db.Column(db.String(500), nullable=True)
+    file_name  = db.Column(db.String(255), nullable=True)
+
+    # Who submitted / when
+    submitted_by_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                                nullable=True)
+    submitted_at    = db.Column(db.DateTime, nullable=True)
+    updated_at      = db.Column(db.DateTime, default=datetime.utcnow,
+                                onupdate=datetime.utcnow, nullable=False)
+
+    # When the chapter was approved (for audit)
+    approved_at     = db.Column(db.DateTime, nullable=True)
+    approved_by_id  = db.Column(db.Integer, db.ForeignKey('users.id'),
+                                nullable=True)
+
+    # Relationships
+    project      = db.relationship('Project',  foreign_keys=[project_id],
+                                   backref=db.backref('chapters',
+                                                       order_by='Chapter.order',
+                                                       lazy='dynamic'))
+    submitter    = db.relationship('User', foreign_keys=[submitted_by_id])
+    approver     = db.relationship('User', foreign_keys=[approved_by_id])
+    reviews      = db.relationship('ChapterReview',
+                                   backref='chapter',
+                                   lazy='dynamic',
+                                   cascade='all, delete-orphan',
+                                   order_by='ChapterReview.created_at.desc()')
+
+    __table_args__ = (
+        db.UniqueConstraint('project_id', 'order', name='uq_chapter_project_order'),
+    )
+
+    @property
+    def is_editable_by(self):
+        """Returns True if the chapter can be edited (not locked / approved)."""
+        return self.status in (ChapterStatus.UNLOCKED,
+                               ChapterStatus.NEEDS_REVISION)
+
+    def __repr__(self):
+        return f'<Chapter {self.order} [{self.status.value}] for Project {self.project_id}>'
+
+
+# ── STEP 4  ──────────────────────────────────────────────────────────────────
+
+class ChapterReview(db.Model):
+    """
+    Supervisor feedback on a specific chapter submission.
+    Multiple review rounds are stored (full history).
+    """
+    __tablename__ = 'chapter_reviews'
+
+    id         = db.Column(db.Integer, primary_key=True)
+    chapter_id = db.Column(db.Integer, db.ForeignKey('chapters.id'),
+                           nullable=False, index=True)
+    reviewer_id= db.Column(db.Integer, db.ForeignKey('users.id'),
+                           nullable=False, index=True)
+
+    # The decision on this round
+    decision   = db.Column(db.String(20), nullable=False)  # 'approved' | 'needs_revision'
+
+    # Feedback text
+    feedback   = db.Column(db.Text, nullable=False)
+
+    # Round number (1st review = 1, second = 2, …)
+    round_num  = db.Column(db.Integer, default=1, nullable=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationship
+    reviewer   = db.relationship('User', backref='chapter_reviews')
+
+    def __repr__(self):
+        return f'<ChapterReview chapter={self.chapter_id} round={self.round_num} decision={self.decision}>'
+
+
+# ── STEP 5  ──────────────────────────────────────────────────────────────────
+# Add these TWO columns to your existing Project model
+
+"""
+    # Chapter-workflow tracking (added fields)
+    ai_check_passed   = db.Column(db.Boolean, default=False, nullable=False)
+    # True once AI similarity scan passes and chapters are created
+    chapters_unlocked = db.Column(db.Boolean, default=False, nullable=False)
+"""
+
+# ── STEP 6  ──────────────────────────────────────────────────────────────────
+# Update __all__ in db.py:
+"""
+    'Chapter',
+    'ChapterReview',
+    'ChapterStatus',
+    'CHAPTER_DEFINITIONS',
+"""
+
+
+# ── HELPER  ──────────────────────────────────────────────────────────────────
+
+def create_chapters_for_project(project_id):
+    """
+    Call this once, right after the AI check passes.
+    Creates 6 Chapter rows: ch1 = UNLOCKED, ch2-6 = LOCKED.
+    """
+    for order, slug, title, _ in CHAPTER_DEFINITIONS:
+        status = ChapterStatus.UNLOCKED if order == 1 else ChapterStatus.LOCKED
+        ch = Chapter(
+            project_id=project_id,
+            order=order,
+            slug=slug,
+            title=title,
+            status=status,
+        )
+        db.session.add(ch)
+    db.session.commit()
+
+
+def unlock_next_chapter(project_id, current_order):
+    """
+    After chapter `current_order` is approved, unlock chapter `current_order + 1`.
+    Returns the next Chapter object or None if this was the last chapter.
+    """
+    next_ch = Chapter.query.filter_by(
+        project_id=project_id,
+        order=current_order + 1
+    ).first()
+    if next_ch and next_ch.status == ChapterStatus.LOCKED:
+        next_ch.status = ChapterStatus.UNLOCKED
+        db.session.commit()
+    return next_ch
+
 
 
 class SimilarityRecord(db.Model):

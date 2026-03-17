@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+{% block title %}{{ chapter.title }} — CapstoneGuard{% endblock %}
+
+{% block content %}
+<div style="max-width:1050px;margin:0 auto;padding:2rem 1.5rem;">
+
+    {# ── Breadcrumb ── #}
+    <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;color:var(--text-muted);margin-bottom:1.4rem;flex-wrap:wrap;">
+        <a href="{{ url_for('projects.project_detail', project_id=project.id) }}"
+           style="color:var(--text-muted);text-decoration:none;">{{ project.title }}</a>
+        <i class="bi bi-chevron-right" style="font-size:0.7rem;"></i>
+        <a href="{{ url_for('chapters_bp.chapter_overview', project_id=project.id) }}"
+           style="color:var(--text-muted);text-decoration:none;">Chapters</a>
+        <i class="bi bi-chevron-right" style="font-size:0.7rem;"></i>
+        <span style="color:var(--text-dark);font-weight:600;">{{ chapter.title }}</span>
+    </div>
+
+    {# ── Chapter mini-stepper ── #}
+    <div style="display:flex;align-items:center;gap:0;margin-bottom:1.8rem;overflow-x:auto;padding-bottom:4px;">
+        {% set all_chapters = project.chapters.order_by('order').all() %}
+        {% for c in all_chapters %}
+        {% set is_current = (c.id == chapter.id) %}
+        {% set is_done    = (c.status.value == 'approved') %}
+        {% set is_locked  = (c.status.value == 'locked') %}
+        <a href="{% if not is_locked %}{{ url_for('chapters_bp.chapter_detail', project_id=project.id, chapter_order=c.order) }}{% else %}#{% endif %}"
+           style="display:flex;flex-direction:column;align-items:center;gap:4px;
+                  min-width:60px;text-decoration:none;
+                  {% if is_locked %}pointer-events:none;opacity:0.4;{% endif %}">
+            <div style="
+                width:32px;height:32px;border-radius:50%;
+                display:flex;align-items:center;justify-content:center;
+                font-size:0.78rem;font-weight:700;
+                border:2px solid {% if is_current %}var(--green-primary){% elif is_done %}#16a34a{% else %}var(--border){% endif %};
+                background:{% if is_done %}#dcfce7{% elif is_current %}var(--green-light){% else %}var(--white){% endif %};
+                color:{% if is_done %}#16a34a{% elif is_current %}var(--green-primary){% else %}var(--text-muted){% endif %};
+            ">
+                {% if is_done %}<i class="bi bi-check-lg"></i>{% else %}{{ c.order }}{% endif %}
+            </div>
+            <span style="font-size:0.65rem;color:{% if is_current %}var(--green-primary){% else %}var(--text-muted){% endif %};
+                         font-weight:{% if is_current %}700{% else %}400{% endif %};text-align:center;line-height:1.2;max-width:55px;">
+                Ch.{{ c.order }}
+            </span>
+        </a>
+        {% if not loop.last %}
+        <div style="flex:1;height:2px;background:{% if is_done %}#86efac{% else %}var(--border){% endif %};
+                    margin-bottom:16px;min-width:12px;"></div>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:1.2rem;align-items:start;">
+
+        {# ── LEFT: Chapter Content ── #}
+        <div>
+
+            {# Status Banner #}
+            {% if chapter.status == ChapterStatus.LOCKED %}
+            <div style="padding:1rem 1.2rem;background:#fef9c3;border:1px solid #fde68a;border-radius:10px;margin-bottom:1.2rem;
+                        font-size:0.88rem;color:#78350f;display:flex;align-items:center;gap:0.6rem;">
+                <i class="bi bi-lock-fill"></i>
+                <span><strong>Chapter locked.</strong> Complete and get approval for the previous chapter first.</span>
+            </div>
+
+            {% elif chapter.status == ChapterStatus.APPROVED %}
+            <div style="padding:1rem 1.2rem;background:#dcfce7;border:1px solid #86efac;border-radius:10px;margin-bottom:1.2rem;
+                        font-size:0.88rem;color:#166534;display:flex;align-items:center;gap:0.6rem;">
+                <i class="bi bi-check-circle-fill"></i>
+                <span><strong>Approved</strong>
+                    {% if chapter.approved_at %}on {{ chapter.approved_at.strftime('%d %b %Y') }}{% endif %}
+                    {% if chapter.approver %}by {{ chapter.approver.full_name }}{% endif %}.
+                </span>
+            </div>
+
+            {% elif chapter.status == ChapterStatus.NEEDS_REVISION %}
+            <div style="padding:1rem 1.2rem;background:#fee2e2;border:1px solid #fecaca;border-radius:10px;margin-bottom:1.2rem;
+                        font-size:0.88rem;color:#7f1d1d;display:flex;align-items:center;gap:0.6rem;">
+                <i class="bi bi-arrow-counterclockwise"></i>
+                <span><strong>Revision requested.</strong> Please update your submission and resubmit.</span>
+            </div>
+
+            {% elif chapter.status == ChapterStatus.SUBMITTED %}
+            <div style="padding:1rem 1.2rem;background:#dbeafe;border:1px solid #93c5fd;border-radius:10px;margin-bottom:1.2rem;
+                        font-size:0.88rem;color:#1e3a8a;display:flex;align-items:center;gap:0.6rem;">
+                <i class="bi bi-hourglass-split"></i>
+                <span><strong>Awaiting review.</strong> Your submission has been received.</span>
+            </div>
+
+            {% elif chapter.status == ChapterStatus.UNDER_REVIEW %}
+            <div style="padding:1rem 1.2rem;background:#e0e7ff;border:1px solid #a5b4fc;border-radius:10px;margin-bottom:1.2rem;
+                        font-size:0.88rem;color:#3730a3;display:flex;align-items:center;gap:0.6rem;">
+                <i class="bi bi-search"></i>
+                <span><strong>Under review.</strong> Your supervisor is reviewing this chapter.</span>
+            </div>
+            {% endif %}
+
+            {# Latest supervisor feedback (if any) #}
+            {% if reviews %}
+            {% set latest = reviews[0] %}
+            <div style="padding:1.1rem 1.3rem;border-radius:10px;margin-bottom:1.2rem;
+                        border:1.5px solid {% if latest.decision == 'approved' %}#86efac{% else %}#fecaca{% endif %};
+                        background:{% if latest.decision == 'approved' %}#f0fdf4{% else %}#fff5f5{% endif %};">
+                <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;
+                             letter-spacing:0.06em;margin-bottom:0.5rem;">
+                    Latest Feedback (Round {{ latest.round_num }}) · {{ latest.created_at.strftime('%d %b %Y') }}
+                </div>
+                <p style="font-size:0.88rem;color:var(--text-dark);line-height:1.65;margin:0 0 0.4rem;">
+                    {{ latest.feedback }}
+                </p>
+                <span class="oc-badge {% if latest.decision == 'approved' %}badge-approved{% else %}badge-rejected{% endif %}">
+                    {{ latest.decision | replace('_',' ') | title }}
+                </span>
+                <span style="font-size:0.75rem;color:var(--text-muted);margin-left:6px;">
+                    by {{ latest.reviewer.full_name }}
+                </span>
+            </div>
+            {% endif %}
+
+            {# ── STUDENT SUBMISSION FORM ── #}
+            {% if can_submit and chapter.status.value in ['unlocked', 'needs_revision'] %}
+            <div class="oc-card" style="margin-bottom:1.2rem;">
+                <div class="oc-card-header">
+                    <h2 class="oc-card-title">
+                        <i class="bi bi-pencil-square" style="color:var(--green-primary);margin-right:6px;"></i>
+                        {% if chapter.status == ChapterStatus.NEEDS_REVISION %}Update & Resubmit{% else %}Submit Chapter{% endif %}
+                    </h2>
+                </div>
+                <div class="oc-card-body">
+                    {% if hint %}
+                    <div style="padding:0.7rem 0.9rem;background:var(--bg);border-radius:8px;font-size:0.82rem;
+                                color:var(--text-muted);margin-bottom:1rem;border:1px solid var(--border);">
+                        <i class="bi bi-lightbulb" style="color:var(--green-primary);margin-right:4px;"></i>
+                        <strong>What to include:</strong> {{ hint }}
+                    </div>
+                    {% endif %}
+                    <form method="POST">
+                        <input type="hidden" name="action" value="submit_chapter">
+                        <div class="field">
+                            <label class="oc-label">Chapter Content <span style="color:#e53e3e;">*</span></label>
+                            <textarea class="oc-textarea" name="content" rows="14" required
+                                      placeholder="Write or paste your chapter content here…"
+                                      style="font-family:inherit;font-size:0.9rem;line-height:1.7;">{{ chapter.content or '' }}</textarea>
+                            <p class="oc-help">Provide a thorough write-up. You can revise and resubmit if the supervisor requests changes.</p>
+                        </div>
+                        <div style="display:flex;gap:0.75rem;margin-top:1.2rem;">
+                            <a href="{{ url_for('chapters_bp.chapter_overview', project_id=project.id) }}" class="btn-oc btn-oc-outline">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn-oc btn-oc-primary">
+                                <i class="bi bi-send"></i>
+                                {% if chapter.status == ChapterStatus.NEEDS_REVISION %}Resubmit Chapter{% else %}Submit for Review{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {# ── VIEW ONLY (submitted/under_review content) ── #}
+            {% elif chapter.content %}
+            <div class="oc-card" style="margin-bottom:1.2rem;">
+                <div class="oc-card-header" style="display:flex;align-items:center;justify-content:space-between;">
+                    <h2 class="oc-card-title">
+                        <i class="bi bi-file-text" style="color:var(--green-primary);margin-right:6px;"></i>
+                        Submitted Content
+                    </h2>
+                    {% if chapter.submitted_at %}
+                    <span style="font-size:0.75rem;color:var(--text-muted);">
+                        {{ chapter.submitted_at.strftime('%d %b %Y, %H:%M') }}
+                        {% if chapter.submitter %}· by {{ chapter.submitter.full_name }}{% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="oc-card-body">
+                    <div style="font-size:0.9rem;color:var(--text-dark);line-height:1.8;white-space:pre-wrap;
+                                padding:0.5rem;background:var(--bg);border-radius:8px;border:1px solid var(--border);">{{ chapter.content }}</div>
+
+                    {# Supervisor can start review from here #}
+                    {% if can_review and chapter.status == ChapterStatus.SUBMITTED %}
+                    <form method="POST" action="{{ url_for('chapters_bp.start_review', project_id=project.id, chapter_order=chapter.order) }}"
+                          style="margin-top:1rem;">
+                        <button type="submit" class="btn-oc btn-oc-outline btn-oc-sm">
+                            <i class="bi bi-search"></i> Mark as Under Review
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {# ── SUPERVISOR REVIEW FORM ── #}
+            {% if can_review and chapter.status.value in ['submitted', 'under_review'] %}
+            <div class="oc-card" style="margin-bottom:1.2rem;border:1.5px solid var(--green-primary);">
+                <div class="oc-card-header">
+                    <h2 class="oc-card-title">
+                        <i class="bi bi-clipboard2-check" style="color:var(--green-primary);margin-right:6px;"></i>
+                        Submit Review
+                    </h2>
+                </div>
+                <div class="oc-card-body">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="review_chapter">
+                        <div class="field">
+                            <label class="oc-label">Decision <span style="color:#e53e3e;">*</span></label>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                                <label style="cursor:pointer;">
+                                    <input type="radio" name="decision" value="approved"
+                                           id="dec_approve" style="display:none;" onchange="toggleDecision()">
+                                    <div id="card_approve" style="
+                                        border:2px solid var(--border);background:var(--white);
+                                        border-radius:10px;padding:0.9rem;text-align:center;transition:all 0.15s;
+                                        cursor:pointer;">
+                                        <i class="bi bi-check-circle-fill" style="font-size:1.4rem;color:#16a34a;display:block;margin-bottom:4px;"></i>
+                                        <div style="font-weight:700;font-size:0.88rem;color:var(--text-dark);">Approve</div>
+                                        <div style="font-size:0.75rem;color:var(--text-muted);">Unlocks next chapter</div>
+                                    </div>
+                                </label>
+                                <label style="cursor:pointer;">
+                                    <input type="radio" name="decision" value="needs_revision"
+                                           id="dec_revise" style="display:none;" onchange="toggleDecision()">
+                                    <div id="card_revise" style="
+                                        border:2px solid var(--border);background:var(--white);
+                                        border-radius:10px;padding:0.9rem;text-align:center;transition:all 0.15s;
+                                        cursor:pointer;">
+                                        <i class="bi bi-arrow-counterclockwise" style="font-size:1.4rem;color:#dc2626;display:block;margin-bottom:4px;"></i>
+                                        <div style="font-weight:700;font-size:0.88rem;color:var(--text-dark);">Request Revision</div>
+                                        <div style="font-size:0.75rem;color:var(--text-muted);">Student resubmits</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="field" style="margin-top:1rem;">
+                            <label class="oc-label" for="feedback">Feedback / Notes <span style="color:#e53e3e;">*</span></label>
+                            <textarea class="oc-textarea" id="feedback" name="feedback" rows="5" required
+                                      placeholder="Provide detailed feedback for the student…"></textarea>
+                        </div>
+                        <div style="margin-top:1.2rem;display:flex;gap:0.75rem;">
+                            <button type="submit" class="btn-oc btn-oc-primary">
+                                <i class="bi bi-send-check"></i> Submit Review
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            {# ── Review History ── #}
+            {% if reviews | length > 0 %}
+            <div class="oc-card">
+                <div class="oc-card-header">
+                    <h2 class="oc-card-title" style="font-size:0.95rem;">
+                        <i class="bi bi-clock-history" style="color:var(--text-muted);margin-right:5px;"></i>
+                        Review History
+                    </h2>
+                </div>
+                <div class="oc-card-body" style="padding:0.5rem 0;">
+                    {% for review in reviews %}
+                    <div style="padding:0.9rem 1.3rem;border-bottom:{% if not loop.last %}1px solid var(--border){% else %}none{% endif %};">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;flex-wrap:wrap;gap:0.5rem;">
+                            <div style="display:flex;align-items:center;gap:0.6rem;">
+                                <div class="avatar-circle" style="width:28px;height:28px;font-size:0.72rem;flex-shrink:0;
+                                    {% if review.decision == 'approved' %}background:#dcfce7;color:#16a34a;{% else %}background:#fee2e2;color:#dc2626;{% endif %}">
+                                    {{ review.reviewer.full_name[0].upper() }}
+                                </div>
+                                <div>
+                                    <span style="font-weight:600;font-size:0.86rem;color:var(--text-dark);">{{ review.reviewer.full_name }}</span>
+                                    <span style="font-size:0.72rem;color:var(--text-muted);margin-left:4px;">Round {{ review.round_num }}</span>
+                                </div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <span class="oc-badge {% if review.decision == 'approved' %}badge-approved{% else %}badge-rejected{% endif %}">
+                                    {{ review.decision | replace('_',' ') | title }}
+                                </span>
+                                <span style="font-size:0.72rem;color:var(--text-muted);">{{ review.created_at.strftime('%d %b %Y') }}</span>
+                            </div>
+                        </div>
+                        <p style="font-size:0.85rem;color:var(--text-muted);line-height:1.6;margin:0;">{{ review.feedback }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        {# ── RIGHT SIDEBAR ── #}
+        <div style="display:flex;flex-direction:column;gap:1rem;">
+
+            {# Chapter Status Card #}
+            <div class="oc-card">
+                <div class="oc-card-header">
+                    <h3 class="oc-card-title" style="font-size:0.92rem;">Chapter Status</h3>
+                </div>
+                <div class="oc-card-body">
+                    {% for label, value in [
+                        ('Chapter',    chapter.title),
+                        ('Status',     chapter.status.value | replace('_',' ') | title),
+                        ('Submitted',  chapter.submitted_at.strftime('%d %b %Y') if chapter.submitted_at else '—'),
+                        ('Approved',   chapter.approved_at.strftime('%d %b %Y') if chapter.approved_at else '—'),
+                        ('Reviews',    reviews | length | string),
+                    ] %}
+                    <div style="margin-bottom:0.7rem;">
+                        <div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">{{ label }}</div>
+                        <div style="font-size:0.88rem;font-weight:600;color:var(--text-dark);">{{ value }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {# All Chapters Quick Nav #}
+            <div class="oc-card">
+                <div class="oc-card-header">
+                    <h3 class="oc-card-title" style="font-size:0.92rem;">All Chapters</h3>
+                </div>
+                <div style="padding:0.25rem 0;">
+                    {% for c in all_chapters %}
+                    {% set is_locked = c.status.value == 'locked' %}
+                    {% set is_active = c.id == chapter.id %}
+                    <a href="{% if not is_locked %}{{ url_for('chapters_bp.chapter_detail', project_id=project.id, chapter_order=c.order) }}{% else %}#{% endif %}"
+                       style="display:flex;align-items:center;gap:0.65rem;padding:0.55rem 1.1rem;
+                              background:{% if is_active %}var(--green-light){% else %}transparent{% endif %};
+                              text-decoration:none;
+                              {% if is_locked %}pointer-events:none;opacity:0.4;{% endif %}
+                              border-left:3px solid {% if is_active %}var(--green-primary){% else %}transparent{% endif %};">
+                        <span style="font-size:0.7rem;font-weight:700;
+                                     width:20px;height:20px;border-radius:50%;
+                                     display:flex;align-items:center;justify-content:center;
+                                     background:{% if c.status.value == 'approved' %}#dcfce7{% elif is_active %}var(--green-light){% else %}var(--bg){% endif %};
+                                     color:{% if c.status.value == 'approved' %}#16a34a{% elif is_active %}var(--green-primary){% else %}var(--text-muted){% endif %};
+                                     border:1.5px solid {% if c.status.value == 'approved' %}#86efac{% elif is_active %}var(--green-primary){% else %}var(--border){% endif %};">
+                            {% if c.status.value == 'approved' %}<i class="bi bi-check-lg" style="font-size:0.55rem;"></i>{% else %}{{ c.order }}{% endif %}
+                        </span>
+                        <span style="font-size:0.82rem;
+                                     font-weight:{% if is_active %}700{% else %}500{% endif %};
+                                     color:{% if is_active %}var(--green-primary){% else %}var(--text-dark){% endif %};
+                                     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            Ch.{{ c.order }} — {{ c.slug | replace('_',' ') | title }}
+                        </span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+@media(max-width:900px){
+    div[style*="grid-template-columns:1fr 300px"]{grid-template-columns:1fr !important;}
+}
+</style>
+
+<script>
+function toggleDecision() {
+    const approve = document.getElementById('dec_approve').checked;
+    const revise  = document.getElementById('dec_revise').checked;
+    const ca = document.getElementById('card_approve');
+    const cr = document.getElementById('card_revise');
+
+    ca.style.border      = approve ? '2px solid #16a34a' : '2px solid var(--border)';
+    ca.style.background  = approve ? '#f0fdf4' : 'var(--white)';
+    cr.style.border      = revise  ? '2px solid #dc2626' : '2px solid var(--border)';
+    cr.style.background  = revise  ? '#fff5f5' : 'var(--white)';
+}
+// Pre-select if only one option exists
+document.querySelectorAll('input[name="decision"]').forEach(r => {
+    r.addEventListener('change', toggleDecision);
+});
+</script>
+{% endblock %}
