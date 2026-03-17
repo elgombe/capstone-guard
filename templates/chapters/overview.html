@@ -51,6 +51,36 @@
         {% endif %}
     </div>
 
+    {# ── Supervisor: Awaiting Review Alert ── #}
+    {% if can_review %}
+    {% set pending_review = chapters | selectattr('status.value', 'in', ['submitted', 'under_review']) | list %}
+    {% if pending_review %}
+    <div style="padding:1rem 1.2rem;background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;
+                margin-bottom:1.4rem;display:flex;align-items:flex-start;gap:0.75rem;">
+        <i class="bi bi-clipboard2-check" style="color:#92400e;font-size:1.2rem;flex-shrink:0;margin-top:1px;"></i>
+        <div>
+            <div style="font-weight:700;font-size:0.9rem;color:#78350f;margin-bottom:0.3rem;">
+                {{ pending_review | length }} chapter{{ 's' if pending_review|length > 1 }} awaiting your review
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
+                {% for ch in pending_review %}
+                <a href="{{ url_for('chapters_bp.chapter_detail', project_id=project.id, chapter_order=ch.order) }}"
+                   class="btn-oc btn-oc-sm btn-oc-primary" style="background:#92400e;border-color:#92400e;">
+                    <i class="bi bi-search"></i> Review {{ ch.title }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div style="padding:0.7rem 1rem;background:var(--green-light);border:1px solid var(--border);border-radius:9px;
+                font-size:0.82rem;color:var(--green-primary);margin-bottom:1.2rem;display:flex;align-items:center;gap:6px;">
+        <i class="bi bi-check2-circle"></i>
+        No chapters pending your review right now.
+    </div>
+    {% endif %}
+    {% endif %}
+
     <div style="display:grid;grid-template-columns:1fr 280px;gap:1.2rem;align-items:start;">
 
         {# ── Chapter List ── #}

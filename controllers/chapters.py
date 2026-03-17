@@ -24,9 +24,9 @@ chapters_bp = Blueprint('chapters_bp', __name__)
 def _can_access_project(user, project):
     """
     True if user may view/interact with project chapters.
-    - author (HIT400)
+    - author (HIT400 or HIT200)
     - any group member (HIT200)
-    - supervisor of that group (HIT200)
+    - assigned supervisor (HIT200) or any supervisor (HIT400)
     - admin / reviewer (always)
     """
     if user.role in [UserRole.ADMIN, UserRole.REVIEWER]:
@@ -38,6 +38,8 @@ def _can_access_project(user, project):
             return True
         if project.group.supervisor_id == user.id:
             return True
+    if project.category != ProjectCategory.HIT200 and user.role == UserRole.SUPERVISOR:
+        return True
     return False
 
 
@@ -57,17 +59,18 @@ def _can_submit_chapter(user, project):
 def _can_review_chapter(user, project):
     """
     Supervisors, reviewers, and admins may review.
-    For HIT200, only the assigned supervisor (or admin) may review.
+    - HIT400: any supervisor, reviewer, or admin can review
+    - HIT200: only the assigned group supervisor (or admin/reviewer) can review
     """
-    if user.role == UserRole.ADMIN:
+    if user.role in [UserRole.ADMIN, UserRole.REVIEWER]:
         return True
-    if user.role == UserRole.REVIEWER:
-        return True
-    if (user.role == UserRole.SUPERVISOR and
-            project.category == ProjectCategory.HIT200 and
-            project.group and
-            project.group.supervisor_id == user.id):
-        return True
+    if user.role == UserRole.SUPERVISOR:
+        if project.category == ProjectCategory.HIT200:
+            # Only the assigned supervisor for this group
+            return (project.group and project.group.supervisor_id == user.id)
+        else:
+            # HIT400: any supervisor can review
+            return True
     return False
 
 

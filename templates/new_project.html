@@ -21,32 +21,55 @@
                     <div class="field">
                         <label class="oc-label">Project Category <span style="color:#e53e3e;">*</span></label>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;" id="categoryCards">
-                            <label style="cursor:pointer;">
+
+                            <!-- HIT400: disabled if student is in a group -->
+                            <label style="cursor:{% if user_in_group %}not-allowed{% else %}pointer{% endif %};"
+                                   title="{% if user_in_group %}You are assigned to a HIT200 group — solo submissions are disabled.{% endif %}">
                                 <input type="radio" name="category" value="hit400"
-                                       id="cat400" checked style="display:none;"
+                                       id="cat400"
+                                       style="display:none;"
+                                       {% if user_in_group %}disabled{% endif %}
+                                       {% if not user_in_group %}checked{% endif %}
                                        onchange="toggleCategory()">
                                 <div class="cat-card" id="card400" style="
-                                    border:2px solid var(--green-primary);background:var(--green-light);
-                                    border-radius:10px;padding:1rem;transition:all 0.15s;">
-                                    <div style="font-weight:700;font-size:0.95rem;color:var(--green-primary);margin-bottom:0.2rem;">
+                                    border:2px solid {% if user_in_group %}var(--border){% else %}var(--green-primary){% endif %};
+                                    background:{% if user_in_group %}var(--bg){% else %}var(--green-light){% endif %};
+                                    border-radius:10px;padding:1rem;transition:all 0.15s;
+                                    opacity:{% if user_in_group %}0.45{% else %}1{% endif %};">
+                                    <div style="font-weight:700;font-size:0.95rem;color:{% if user_in_group %}var(--text-muted){% else %}var(--green-primary){% endif %};margin-bottom:0.2rem;">
                                         <i class="bi bi-person-fill"></i> HIT400
                                     </div>
                                     <div style="font-size:0.78rem;color:var(--text-muted);">Solo project — individual submission</div>
+                                    {% if user_in_group %}
+                                    <div style="font-size:0.72rem;color:#b45309;margin-top:4px;font-weight:600;">
+                                        <i class="bi bi-lock-fill"></i> Not available — you're in a group
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </label>
+
+                            <!-- HIT200: auto-selected if in a group -->
                             <label style="cursor:pointer;">
                                 <input type="radio" name="category" value="hit200"
                                        id="cat200" style="display:none;"
+                                       {% if user_in_group %}checked{% endif %}
                                        onchange="toggleCategory()">
                                 <div class="cat-card" id="card200" style="
-                                    border:2px solid var(--border);background:var(--white);
+                                    border:2px solid {% if user_in_group %}var(--green-primary){% else %}var(--border){% endif %};
+                                    background:{% if user_in_group %}var(--green-light){% else %}var(--white){% endif %};
                                     border-radius:10px;padding:1rem;transition:all 0.15s;">
-                                    <div style="font-weight:700;font-size:0.95rem;color:var(--text-dark);margin-bottom:0.2rem;">
+                                    <div style="font-weight:700;font-size:0.95rem;color:{% if user_in_group %}var(--green-primary){% else %}var(--text-dark){% endif %};margin-bottom:0.2rem;">
                                         <i class="bi bi-people-fill"></i> HIT200
                                     </div>
                                     <div style="font-size:0.78rem;color:var(--text-muted);">Team project — requires a supervisor group</div>
+                                    {% if user_in_group %}
+                                    <div style="font-size:0.72rem;color:var(--green-primary);margin-top:4px;font-weight:600;">
+                                        <i class="bi bi-check-circle-fill"></i> Auto-selected — you're in a group
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </label>
+
                         </div>
                     </div>
 
@@ -248,13 +271,17 @@ function toggleCategory() {
 
     const card400 = document.getElementById('card400');
     const card200 = document.getElementById('card200');
+    const cat400disabled = document.getElementById('cat400').disabled;
+
     if (is200) {
         card200.style.border = '2px solid var(--green-primary)';
         card200.style.background = 'var(--green-light)';
         card200.querySelector('div').style.color = 'var(--green-primary)';
-        card400.style.border = '2px solid var(--border)';
-        card400.style.background = 'var(--white)';
-        card400.querySelector('div').style.color = 'var(--text-dark)';
+        if (!cat400disabled) {
+            card400.style.border = '2px solid var(--border)';
+            card400.style.background = 'var(--white)';
+            card400.querySelector('div').style.color = 'var(--text-dark)';
+        }
     } else {
         card400.style.border = '2px solid var(--green-primary)';
         card400.style.background = 'var(--green-light)';
@@ -264,5 +291,10 @@ function toggleCategory() {
         card200.querySelector('div').style.color = 'var(--text-dark)';
     }
 }
+
+// Run on page load to show/hide group field correctly
+document.addEventListener('DOMContentLoaded', function() {
+    toggleCategory();
+});
 </script>
 {% endblock %}

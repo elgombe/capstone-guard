@@ -3,8 +3,6 @@ from controllers.dashboard import login_required, get_current_user
 from datetime import datetime
 from dotenv import load_dotenv
 from .similarity import find_similar_projects          # ← OpenAI-powered
-from models.db import Chapter, ChapterReview, ChapterStatus, CHAPTER_DEFINITIONS
-from models.db import create_chapters_for_project
 
 load_dotenv()
 
@@ -141,7 +139,8 @@ def new_project():
             stream_map = _get_stream_map()
             groups     = _get_user_groups(user)
             return render_template('new_project.html', programs=programs,
-                                   stream_map=stream_map, groups=groups)
+                                   stream_map=stream_map, groups=groups,
+                                   user_in_group=len(groups) > 0)
 
         # HIT200 requires a group
         if category == ProjectCategory.HIT200 and not group_id:
@@ -150,7 +149,8 @@ def new_project():
             stream_map = _get_stream_map()
             groups     = _get_user_groups(user)
             return render_template('new_project.html', programs=programs,
-                                   stream_map=stream_map, groups=groups)
+                                   stream_map=stream_map, groups=groups,
+                                   user_in_group=len(groups) > 0)
 
         project = Project(
             title=title,
@@ -172,9 +172,7 @@ def new_project():
         )
 
         if similar_projects:
-            # Flag duplicate but still let them proceed after review
             project.is_flagged_duplicate = True
-            project.ai_check_passed      = False   # ← NEW
 
             for similar in similar_projects[:5]:
                 record = SimilarityRecord(
@@ -191,7 +189,7 @@ def new_project():
                 title='Similar Projects Found',
                 message=(
                     f'We found {len(similar_projects)} project(s) similar to '
-                    f'"{project.title}". An admin will review before chapters unlock.'
+                    f'"{project.title}". Please review them before proceeding.'
                 ),
                 notification_type='duplicate_warning',
                 related_project_id=project.id,
@@ -199,39 +197,25 @@ def new_project():
 
             db.session.commit()
             flash(
-                f'Project submitted! However, {len(similar_projects)} similar '
-                f'project(s) were found. An administrator must clear the duplicate '
-                f'flag before you can begin chapter submissions.',
+                f'Project submitted! Warning: {len(similar_projects)} similar '
+                f'project(s) were found — please review them.',
                 'warning'
             )
-            # Stay on project_detail; no chapters yet
-            return redirect(url_for('projects.project_detail', project_id=project.id))
-
         else:
-            # ── AI check passed: scaffold chapters ────────────────────────
-            project.ai_check_passed      = True   # ← NEW
-            project.chapters_unlocked    = True   # ← NEW
             db.session.commit()
+            flash('Project submitted successfully!', 'success')
 
-            create_chapters_for_project(project.id)  # ← NEW: creates 6 chapter rows
-
-            flash(
-                'Project submitted! AI similarity check passed. '
-                'You can now begin submitting your chapters.',
-                'success'
-            )
-            # Redirect straight to chapter overview ← CHANGED
-            return redirect(url_for('chapters_bp.chapter_overview',
-                                    project_id=project.id))
-
+        return redirect(url_for('projects.project_detail', project_id=project.id))
 
     # GET
     user       = get_current_user()
     programs   = _get_programs()
     stream_map = _get_stream_map()
     groups     = _get_user_groups(user)
+    user_in_group = len(groups) > 0
     return render_template('new_project.html', programs=programs,
-                           stream_map=stream_map, groups=groups)
+                           stream_map=stream_map, groups=groups,
+                           user_in_group=user_in_group)
 
 
 @projects_bp.route('/projects/<int:project_id>')
@@ -257,11 +241,35 @@ def project_detail(project_id):
         is_deleted=False,
     ).order_by(Comment.created_at.desc()).all()
 
+    # Who can see the chapter workflow button
+    is_group_member = (
+        project.category == ProjectCategory.HIT200
+        and project.group
+        and user in project.group.members
+    )
+    is_group_supervisor = (
+        project.category == ProjectCategory.HIT200
+        and project.group
+        and project.group.supervisor_id == user.id
+    )
+    can_access_chapters = (
+        user.id == project.user_id
+        or is_group_member
+        or is_group_supervisor
+        or user.role in [UserRole.ADMIN, UserRole.REVIEWER]
+    )
+
+    # Count chapters directly — avoids dependency on ai_check_passed column
+    from models.db import Chapter
+    chapter_count = Chapter.query.filter_by(project_id=project_id).count()
+
     return render_template('project_detail.html',
         project=project,
         similar_projects=similar_projects,
         comments=comments,
         can_edit=(user.id == project.user_id or user.role in [UserRole.ADMIN, UserRole.REVIEWER]),
+        can_access_chapters=can_access_chapters,
+        chapter_count=chapter_count,
     )
 
 
@@ -312,15 +320,23 @@ def edit_project(project_id):
 @projects_bp.route('/projects/<int:project_id>/status', methods=['POST'])
 @login_required
 def update_project_status(project_id):
-    """Update project status (admin / reviewer only)."""
+    """Update project status (supervisor / admin / reviewer only)."""
     user = get_current_user()
 
-    if user.role not in [UserRole.ADMIN, UserRole.REVIEWER]:
+    if user.role not in [UserRole.ADMIN, UserRole.REVIEWER, UserRole.SUPERVISOR]:
         return jsonify({'error': 'Unauthorized'}), 403
 
     project      = Project.query.get_or_404(project_id)
     new_status   = request.form.get('status', '')
     review_notes = request.form.get('review_notes', '')
+
+    # Supervisors may only update projects in their group (HIT200)
+    # or any project (HIT400) — admins/reviewers can update anything
+    if user.role == UserRole.SUPERVISOR:
+        if project.category == ProjectCategory.HIT200:
+            if not project.group or project.group.supervisor_id != user.id:
+                flash('You can only review projects assigned to your group.', 'danger')
+                return redirect(url_for('projects.project_detail', project_id=project_id))
 
     try:
         status_enum = ProjectStatus[new_status.upper()]
@@ -330,27 +346,60 @@ def update_project_status(project_id):
         project.review_notes   = review_notes
         db.session.commit()
 
-        status_messages = {
-            ProjectStatus.APPROVED:     'Congratulations! Your project has been approved.',
-            ProjectStatus.REJECTED:     'Your project was not approved. Please review the feedback.',
-            ProjectStatus.UNDER_REVIEW: 'Your project is currently under review.',
-        }
+        # ── When approved: create chapters if they don't exist yet ────────
+        if status_enum == ProjectStatus.APPROVED:
+            from models.db import Chapter, create_chapters_for_project
+            existing = Chapter.query.filter_by(project_id=project.id).count()
+            if existing == 0:
+                create_chapters_for_project(project.id)
 
-        if status_enum in status_messages:
+            # Notify author + all group members
+            recipients = {project.user_id}
+            if project.category == ProjectCategory.HIT200 and project.group:
+                for m in project.group.members:
+                    recipients.add(m.id)
+
+            for uid in recipients:
+                create_notification(
+                    user_id=uid,
+                    title='Project Approved — Chapters Unlocked!',
+                    message=(
+                        f'Your project "{project.title}" has been approved by '
+                        f'{user.full_name}. You can now begin submitting chapters.'
+                    ),
+                    notification_type='project_approved',
+                    related_project_id=project.id,
+                )
+
+        elif status_enum == ProjectStatus.REJECTED:
             create_notification(
                 user_id=project.user_id,
-                title=f'Project {status_enum.value.replace("_", " ").title()}',
-                message=status_messages[status_enum],
-                notification_type=f'project_{status_enum.value}',
+                title='Project Not Approved',
+                message=(
+                    f'Your project "{project.title}" was not approved. '
+                    f'Feedback: {review_notes}' if review_notes
+                    else f'Your project "{project.title}" was not approved. Please review the feedback.'
+                ),
+                notification_type='project_rejected',
                 related_project_id=project.id,
             )
 
+        elif status_enum == ProjectStatus.UNDER_REVIEW:
+            create_notification(
+                user_id=project.user_id,
+                title='Project Under Review',
+                message=f'Your project "{project.title}" is currently under review.',
+                notification_type='project_under_review',
+                related_project_id=project.id,
+            )
+
+        db.session.commit()
         flash('Project status updated successfully!', 'success')
+
     except KeyError:
         flash('Invalid status value.', 'danger')
 
     return redirect(url_for('projects.project_detail', project_id=project_id))
-
 
 @projects_bp.route('/projects/<int:project_id>/comments', methods=['POST'])
 @login_required
@@ -385,37 +434,3 @@ def add_comment(project_id):
 
     flash('Comment added successfully!', 'success')
     return redirect(url_for('projects.project_detail', project_id=project_id))
-
-
-@projects_bp.route('/projects/<int:project_id>/clear-duplicate', methods=['POST'])
-@login_required
-def clear_duplicate_flag(project_id):
-    """Admin clears duplicate flag and unlocks chapters."""
-    from controllers.dashboard import get_current_user
-    user = get_current_user()
-    if user.role not in [UserRole.ADMIN]:
-        flash('Admin access required.', 'danger')
-        return redirect(url_for('projects.project_detail', project_id=project_id))
-
-    project = Project.query.get_or_404(project_id)
-    project.is_flagged_duplicate = False
-    project.ai_check_passed      = True
-    project.chapters_unlocked    = True
-    db.session.commit()
-
-    # Create chapters if not yet created
-    from models.db import Chapter, create_chapters_for_project
-    if Chapter.query.filter_by(project_id=project_id).count() == 0:
-        create_chapters_for_project(project_id)
-
-    create_notification(
-        user_id=project.user_id,
-        title='Duplicate Flag Cleared',
-        message=(f'Your project "{project.title}" has been cleared. '
-                 f'You may now begin submitting your chapters.'),
-        notification_type='duplicate_cleared',
-        related_project_id=project.id
-    )
-    db.session.commit()
-    flash('Duplicate flag cleared. Chapters unlocked.', 'success')
-    return redirect(url_for('chapters_bp.chapter_overview', project_id=project_id))
