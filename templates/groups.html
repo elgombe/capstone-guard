@@ -146,16 +146,51 @@
                     <div style="background:var(--bg);border-radius:10px;padding:1.1rem;">
                         <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;
                                     letter-spacing:0.06em;margin-bottom:0.75rem;">Add Student</div>
-                        <form method="POST" action="{{ url_for('groups_bp.add_member', group_id=group.id) }}">
+                        <form method="POST" action="{{ url_for('groups_bp.add_member', group_id=group.id) }}"
+                              id="add-form-{{ group.id }}">
                             <div style="display:flex;flex-direction:column;gap:0.6rem;">
-                                <select class="oc-select" name="student_id" required
-                                        hx-get="{{ url_for('groups_bp.available_students', group_id=group.id) }}"
-                                        hx-trigger="load"
-                                        hx-target="this"
-                                        hx-swap="innerHTML">
-                                    <option value="">Loading students…</option>
-                                </select>
-                                <button type="submit" class="btn-oc btn-oc-primary" style="justify-content:center;">
+                                <!-- Hidden field holds the selected student_id -->
+                                <input type="hidden" name="student_id" id="sid-{{ group.id }}" required>
+
+                                <!-- Autocomplete wrapper -->
+                                <div style="position:relative;">
+                                    <div style="position:relative;">
+                                        <i class="bi bi-search" style="position:absolute;left:10px;top:50%;
+                                           transform:translateY(-50%);color:var(--text-muted);font-size:0.82rem;
+                                           pointer-events:none;"></i>
+                                        <input type="text"
+                                               id="stxt-{{ group.id }}"
+                                               name="search"
+                                               placeholder="Type a name…"
+                                               autocomplete="off"
+                                               style="width:100%;padding:0.6rem 0.9rem 0.6rem 2rem;
+                                                      border:1.5px solid var(--border);border-radius:9px;
+                                                      font-family:'DM Sans',sans-serif;font-size:0.88rem;
+                                                      color:var(--text-dark);background:var(--white);outline:none;
+                                                      transition:border-color 0.15s;"
+                                               hx-get="{{ url_for('groups_bp.available_students', group_id=group.id) }}"
+                                               hx-trigger="input changed delay:250ms"
+                                               hx-target="#sres-{{ group.id }}"
+                                               hx-swap="innerHTML"
+                                               onfocus="document.getElementById('sres-{{ group.id }}').style.display='block'"
+                                               oninput="document.getElementById('sid-{{ group.id }}').value='';
+                                                        this.style.borderColor='var(--border)';">
+                                    </div>
+                                    <!-- Results list -->
+                                    <div id="sres-{{ group.id }}"
+                                         style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;
+                                                background:var(--white);border:1.5px solid var(--border);
+                                                border-radius:10px;box-shadow:0 8px 24px rgba(0,40,85,0.12);
+                                                z-index:500;max-height:200px;overflow-y:auto;">
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn-oc btn-oc-primary"
+                                        style="justify-content:center;"
+                                        onclick="if(!document.getElementById('sid-{{ group.id }}').value){
+                                                     event.preventDefault();
+                                                     document.getElementById('stxt-{{ group.id }}').style.borderColor='#e53e3e';
+                                                 }">
                                     <i class="bi bi-person-plus"></i> Add to Group
                                 </button>
                             </div>
@@ -212,4 +247,74 @@
     div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns:1fr !important; }
 }
 </style>
+
+<script>
+// Close all suggestion lists when clicking outside
+document.addEventListener('click', function(e) {
+    document.querySelectorAll('[id^="sres-"]').forEach(function(el) {
+        if (!el.closest('div[style*="position:relative"]').contains(e.target)) {
+            el.style.display = 'none';
+        }
+    });
+});
+
+// Handle HTMX response — render suggestion rows from JSON
+document.addEventListener('htmx:afterRequest', function(e) {
+    const input = e.detail.elt;
+    if (!input.id || !input.id.startsWith('stxt-')) return;
+    const groupId = input.id.replace('stxt-', '');
+    const resList = document.getElementById('sres-' + groupId);
+    if (!resList) return;
+
+    try {
+        const data = JSON.parse(e.detail.xhr.responseText);
+        const q    = input.value.trim().toLowerCase();
+
+        // Filter by what's typed
+        const filtered = q
+            ? data.filter(s => s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q))
+            : data;
+
+        if (filtered.length === 0) {
+            resList.innerHTML = '<div style="padding:0.9rem 1rem;font-size:0.85rem;color:var(--text-muted);">No students found</div>';
+        } else {
+            resList.innerHTML = filtered.map(function(s) {
+                return `<div class="student-suggestion"
+                             data-id="${s.id}"
+                             data-name="${s.name}"
+                             data-group="${groupId}"
+                             style="padding:0.65rem 1rem;font-size:0.88rem;cursor:pointer;
+                                    border-bottom:1px solid var(--border);display:flex;
+                                    align-items:center;gap:0.6rem;transition:background 0.1s;"
+                             onmouseover="this.style.background='var(--green-light)'"
+                             onmouseout="this.style.background=''">
+                            <div style="width:28px;height:28px;background:var(--green-primary);color:white;
+                                        border-radius:50%;display:flex;align-items:center;justify-content:center;
+                                        font-size:0.75rem;font-weight:700;flex-shrink:0;">
+                                ${s.name[0].toUpperCase()}
+                            </div>
+                            <div>
+                                <div style="font-weight:600;color:var(--text-dark);">${s.name}</div>
+                                <div style="font-size:0.75rem;color:var(--text-muted);">${s.email}</div>
+                            </div>
+                        </div>`;
+            }).join('');
+        }
+        resList.style.display = 'block';
+    } catch(err) {
+        // Not JSON — ignore (endpoint returned plain HTML on error)
+    }
+});
+
+// Handle clicking a suggestion
+document.addEventListener('click', function(e) {
+    const row = e.target.closest('.student-suggestion');
+    if (!row) return;
+    const groupId = row.dataset.group;
+    document.getElementById('sid-'  + groupId).value = row.dataset.id;
+    document.getElementById('stxt-' + groupId).value = row.dataset.name;
+    document.getElementById('stxt-' + groupId).style.borderColor = 'var(--green-mid)';
+    document.getElementById('sres-' + groupId).style.display = 'none';
+});
+</script>
 {% endblock %}

@@ -146,17 +146,32 @@ def remove_member(group_id, student_id):
 @login_required
 @supervisor_required
 def available_students(group_id):
-    """HTMX: return student options not yet in this group."""
+    """HTMX: return students not yet in this group, optionally filtered by name/email."""
+    from flask import jsonify
     group = Group.query.get_or_404(group_id)
     existing_ids = [m.id for m in group.members]
-    students = User.query.filter(
+
+    query = User.query.filter(
         User.role == UserRole.STUDENT,
         User.is_active == True,
         ~User.id.in_(existing_ids) if existing_ids else db.true()
-    ).order_by(User.full_name).all()
-
-    options = ''.join(
-        f'<option value="{s.id}">{s.full_name} ({s.email})</option>'
-        for s in students
     )
-    return f'<option value="">Select student…</option>{options}'
+
+    search = request.args.get('stxt-' + str(group_id), '').strip()
+    if not search:
+        # Also try generic 'search' param
+        search = request.args.get('search', '').strip()
+
+    if search:
+        query = query.filter(
+            (User.full_name.ilike(f'%{search}%')) |
+            (User.email.ilike(f'%{search}%'))
+        )
+
+    students = query.order_by(User.full_name).all()
+
+    # Always return JSON for the autocomplete widget
+    return jsonify([
+        {'id': s.id, 'name': s.full_name, 'email': s.email}
+        for s in students
+    ])
