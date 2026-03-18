@@ -232,33 +232,37 @@ def chapter_detail(project_id, chapter_order):
             db.session.add(review)
 
             if decision == 'approved':
-                chapter.status        = ChapterStatus.APPROVED
-                chapter.approved_at   = datetime.utcnow()
-                chapter.approved_by_id= user.id
+                chapter.status         = ChapterStatus.APPROVED
+                chapter.approved_at    = datetime.utcnow()
+                chapter.approved_by_id = user.id
 
-                # Unlock the next chapter
-                next_ch = unlock_next_chapter(project_id, chapter_order)
+                # Unlock the next chapter — use chapter.order (not URL param)
+                # No commit inside unlock_next_chapter; we commit once below
+                next_ch = unlock_next_chapter(project_id, chapter.order)
 
                 _notify_users(
                     project,
                     title=f'Chapter {chapter.order} Approved!',
                     message=(
                         f'"{chapter.title}" has been approved by {user.full_name}. '
-                        + (f'"{next_ch.title}" is now unlocked.'
-                           if next_ch else 'All chapters submitted — project complete!')
+                        + (f'"{next_ch.title}" is now unlocked — you can begin submitting it.'
+                           if next_ch else 'All chapters complete!')
                     ),
                     ntype='chapter_approved'
                 )
 
-                # If all chapters approved → mark project approved
-                remaining_locked = Chapter.query.filter_by(
+                # If all chapters approved → mark project fully complete
+                # Count non-approved chapters (excluding the one we just approved,
+                # which is already set in-session)
+                remaining = Chapter.query.filter_by(
                     project_id=project_id
                 ).filter(
-                    Chapter.status != ChapterStatus.APPROVED
+                    Chapter.status != ChapterStatus.APPROVED,
+                    Chapter.id != chapter.id          # exclude current (set above)
                 ).count()
-                if remaining_locked == 0:
-                    from models.db import ProjectStatus
-                    project.status = ProjectStatus.APPROVED
+                if remaining == 0:
+                    from models.db import ProjectStatus as PS
+                    project.status = PS.APPROVED
                     _notify_users(
                         project,
                         title='Project Fully Approved!',
@@ -267,27 +271,36 @@ def chapter_detail(project_id, chapter_order):
                         ntype='project_approved'
                     )
 
+                # Single commit — saves: chapter approved, next chapter unlocked,
+                # notifications, and (if applicable) project status
+                db.session.commit()
+
+                flash(
+                    f'Chapter {chapter.order} approved! '
+                    + (f'"{next_ch.title}" is now unlocked for the students.' if next_ch
+                       else 'All chapters complete!'),
+                    'success'
+                )
+                # Redirect to overview so supervisor sees the updated progress
+                return redirect(url_for('chapters_bp.chapter_overview',
+                                        project_id=project_id))
+
             else:  # needs_revision
                 chapter.status = ChapterStatus.NEEDS_REVISION
                 _notify_users(
                     project,
                     title=f'Chapter {chapter.order} Needs Revision',
-                    message=(f'"{chapter.title}" requires revision. '
-                             f'Feedback: {feedback[:120]}…' if len(feedback) > 120
-                             else f'Feedback: {feedback}'),
+                    message=(
+                        f'"{chapter.title}" requires revision. Feedback: '
+                        + (feedback[:120] + '…' if len(feedback) > 120 else feedback)
+                    ),
                     ntype='chapter_revision'
                 )
-
-            db.session.commit()
-            flash(
-                'Chapter approved and next chapter unlocked!'
-                if decision == 'approved'
-                else 'Revision requested — student notified.',
-                'success'
-            )
-            return redirect(url_for('chapters_bp.chapter_detail',
-                                    project_id=project_id,
-                                    chapter_order=chapter_order))
+                db.session.commit()
+                flash('Revision requested — student has been notified.', 'success')
+                return redirect(url_for('chapters_bp.chapter_detail',
+                                        project_id=project_id,
+                                        chapter_order=chapter_order))
 
     # Hints for the chapter
     hints = {d[1]: d[3] for d in CHAPTER_DEFINITIONS}

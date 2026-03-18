@@ -113,8 +113,23 @@ def projects():
 @login_required
 def new_project():
     """Submit a new project."""
+    user   = get_current_user()
+    groups = _get_user_groups(user)
+
+    # ── Guard: if student's group already has a project, redirect there ──────
+    if groups:
+        for grp in groups:
+            existing = Project.query.filter_by(group_id=grp.id).first()
+            if existing:
+                flash(
+                    f'Your group "{grp.name}" has already submitted a project. '
+                    f'Only one submission is allowed per group.',
+                    'warning'
+                )
+                return redirect(url_for('projects.project_detail',
+                                        project_id=existing.id))
+
     if request.method == 'POST':
-        user = get_current_user()
 
         title        = request.form.get('title', '').strip()
         description  = request.form.get('description', '').strip()
@@ -137,7 +152,6 @@ def new_project():
             flash(f'Stream "{year} {program}" not found. Please contact the administrator.', 'danger')
             programs   = _get_programs()
             stream_map = _get_stream_map()
-            groups     = _get_user_groups(user)
             return render_template('new_project.html', programs=programs,
                                    stream_map=stream_map, groups=groups,
                                    user_in_group=len(groups) > 0)
@@ -147,10 +161,17 @@ def new_project():
             flash('HIT200 projects must be linked to a group.', 'danger')
             programs   = _get_programs()
             stream_map = _get_stream_map()
-            groups     = _get_user_groups(user)
             return render_template('new_project.html', programs=programs,
                                    stream_map=stream_map, groups=groups,
                                    user_in_group=len(groups) > 0)
+
+        # Double-check at POST time: group already has a project
+        if category == ProjectCategory.HIT200 and group_id:
+            existing = Project.query.filter_by(group_id=group_id).first()
+            if existing:
+                flash('Your group has already submitted a project.', 'warning')
+                return redirect(url_for('projects.project_detail',
+                                        project_id=existing.id))
 
         project = Project(
             title=title,
@@ -208,10 +229,8 @@ def new_project():
         return redirect(url_for('projects.project_detail', project_id=project.id))
 
     # GET
-    user       = get_current_user()
     programs   = _get_programs()
     stream_map = _get_stream_map()
-    groups     = _get_user_groups(user)
     user_in_group = len(groups) > 0
     return render_template('new_project.html', programs=programs,
                            stream_map=stream_map, groups=groups,
