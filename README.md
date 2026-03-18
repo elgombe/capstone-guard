@@ -4,7 +4,7 @@
 
 ---
 
-<img src="static/images/image.png" height=540>
+<img src="static/images/i.png" height=540>
 
 ## Features
 
