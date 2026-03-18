@@ -63,20 +63,11 @@ def my_groups():
     # Build stream_map for JS: { "YEAR PROG": stream_id }
     stream_map = {s.name: s.id for s in streams}
 
-    # Pre-fetch each HIT400 student's project so the template doesn't need to
-    # iterate a dynamic relationship with a fragile namespace workaround
-    from models.db import ProjectCategory
-    hit400_projects = {}
-    for s in hit400_students:
-        proj = s.projects.filter_by(category=ProjectCategory.HIT400).first()
-        hit400_projects[s.id] = proj
-
     return render_template('groups.html',
                            groups=groups, streams=streams, students=students,
                            supervisors_list=supervisors_list,
                            stream_map=stream_map,
                            hit400_students=hit400_students,
-                           hit400_projects=hit400_projects,
                            unassigned_students=unassigned_students, user=user)
 
 

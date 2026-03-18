@@ -362,15 +362,12 @@
                             <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;
                                        color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Supervisor</th>
                             {% endif %}
-                            <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;
-                                       color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Project</th>
                             <th style="padding:0.75rem 1.4rem;text-align:right;font-size:0.72rem;font-weight:700;
                                        color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for student in hit400_students %}
-                        {# hit400 project resolved below #}
                         <tr style="border-bottom:1px solid var(--border);" class="hit400-row">
                             <td style="padding:0.9rem 1.4rem;">
                                 <div style="display:flex;align-items:center;gap:0.65rem;">
@@ -399,44 +396,15 @@
                                 {% endif %}
                             </td>
                             {% endif %}
-                            <td style="padding:0.9rem 1rem;">
-                                {# Look up the student's HIT400 project from the pre-fetched dict #}
-                                {% set proj = hit400_projects.get(student.id) %}
-                                {% if proj %}
-                                <a href="{{ url_for('projects.project_detail', project_id=proj.id) }}"
-                                   style="font-size:0.85rem;font-weight:600;color:var(--green-primary);text-decoration:none;
-                                          display:flex;align-items:center;gap:0.4rem;">
-                                    <i class="bi bi-folder2-open"></i>
-                                    <span style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                        {{ proj.title }}
-                                    </span>
-                                    <span class="oc-badge badge-{{ proj.status.value }}" style="font-size:0.68rem;">
-                                        {{ proj.status.value|replace('_',' ')|title }}
-                                    </span>
-                                </a>
-                                {% else %}
-                                <span style="font-size:0.82rem;color:var(--text-muted);font-style:italic;">
-                                    No project yet
-                                </span>
-                                {% endif %}
-                            </td>
                             <td style="padding:0.9rem 1.4rem;text-align:right;">
-                                <div style="display:flex;gap:0.4rem;justify-content:flex-end;">
-                                    {% if proj %}
-                                    <a href="{{ url_for('projects.project_detail', project_id=proj.id) }}"
-                                       class="btn-oc btn-oc-outline btn-oc-sm">
-                                        <i class="bi bi-eye"></i> View Project
-                                    </a>
-                                    {% endif %}
-                                    <form method="POST"
-                                          action="{{ url_for('groups_bp.remove_hit400_student', student_id=student.id) }}"
-                                          onsubmit="return confirm('Remove {{ student.full_name }} from your HIT400 supervision?')">
-                                        <button type="submit" class="btn-oc btn-oc-sm"
-                                                style="background:#fef2f2;color:#b91c1c;border:1.5px solid #fecaca;">
-                                            <i class="bi bi-person-dash"></i>
-                                        </button>
-                                    </form>
-                                </div>
+                                <form method="POST"
+                                      action="{{ url_for('groups_bp.remove_hit400_student', student_id=student.id) }}"
+                                      onsubmit="return confirm('Remove {{ student.full_name }} from your HIT400 supervision?')">
+                                    <button type="submit" class="btn-oc btn-oc-sm"
+                                            style="background:#fef2f2;color:#b91c1c;border:1.5px solid #fecaca;">
+                                        <i class="bi bi-person-dash"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         {% endfor %}
