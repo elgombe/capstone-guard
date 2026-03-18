@@ -1,170 +1,296 @@
-{% extends "base.html" %}
-{% block title %}Dashboard - CapstoneGuard{% endblock %}
-
-{% block content %}
-<div style="max-width:1200px;margin:0 auto;padding:2rem 1.5rem;">
-
-    <!-- Page Header -->
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.8rem;flex-wrap:wrap;gap:1rem;">
-        <div>
-            <h1 class="page-title">Dashboard</h1>
-            <p class="page-subtitle">Welcome back, {{ user.full_name }}!</p>
-        </div>
-        <a href="{{ url_for('projects.new_project') }}" class="btn-oc btn-oc-primary">
-            <i class="bi bi-plus-lg"></i> New Project
-        </a>
+{% extends "base.html" %} {% block title %}Dashboard - CapstoneGuard{% endblock
+%} {% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem">
+  <!-- Page Header -->
+  <div
+    style="
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 1.8rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    "
+  >
+    <div>
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-subtitle">Welcome back, {{ user.full_name }}!</p>
     </div>
+    {% if user.role.value == 'student' %}
+    <a
+      href="{{ url_for('projects.new_project') }}"
+      class="btn-oc btn-oc-primary"
+    >
+      <i class="bi bi-plus-lg"></i> New Project
+    </a>
+    {% endif %}
+  </div>
 
-    <!-- Stat Cards -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem;margin-bottom:2rem;">
-        <div class="stat-card">
-            <div class="stat-icon-box">
-                <i class="bi bi-folder2-open" style="font-size:1.25rem;color:var(--green-primary);"></i>
-            </div>
-            <div>
-                <div class="stat-value">{{ total_projects }}</div>
-                <div class="stat-label">Total Projects</div>
-            </div>
+  <!-- Stat Cards -->
+  <div
+    style="
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    "
+  >
+    <div class="stat-card">
+      <div class="stat-icon-box">
+        <i
+          class="bi bi-folder2-open"
+          style="font-size: 1.25rem; color: var(--green-primary)"
+        ></i>
+      </div>
+      <div>
+        <div class="stat-value">{{ total_projects }}</div>
+        <div class="stat-label">Total Projects</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon-box" style="background: #dcfce7">
+        <i
+          class="bi bi-check-circle"
+          style="font-size: 1.25rem; color: #16a34a"
+        ></i>
+      </div>
+      <div>
+        <div class="stat-value">{{ approved_projects }}</div>
+        <div class="stat-label">Approved</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon-box" style="background: #fef9c3">
+        <i
+          class="bi bi-hourglass-split"
+          style="font-size: 1.25rem; color: #ca8a04"
+        ></i>
+      </div>
+      <div>
+        <div class="stat-value">{{ pending_projects }}</div>
+        <div class="stat-label">Pending</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon-box" style="background: #dbeafe">
+        <i
+          class="bi bi-mortarboard"
+          style="font-size: 1.25rem; color: #2563eb"
+        ></i>
+      </div>
+      <div>
+        <div class="stat-value">{{ total_streams }}</div>
+        <div class="stat-label">Streams</div>
+      </div>
+    </div>
+    {% if user.role.value == 'admin' %}
+    <a
+      href="{{ url_for('admin_bp.settings') }}"
+      class="stat-card"
+      style="text-decoration: none; cursor: pointer"
+    >
+      <div class="stat-icon-box" style="background: #f3e8ff">
+        <i class="bi bi-gear" style="font-size: 1.25rem; color: #7c3aed"></i>
+      </div>
+      <div>
+        <div class="stat-value" style="font-size: 1rem; padding-top: 2px">
+          Settings
         </div>
-        <div class="stat-card">
-            <div class="stat-icon-box" style="background:#dcfce7;">
-                <i class="bi bi-check-circle" style="font-size:1.25rem;color:#16a34a;"></i>
-            </div>
-            <div>
-                <div class="stat-value">{{ approved_projects }}</div>
-                <div class="stat-label">Approved</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon-box" style="background:#fef9c3;">
-                <i class="bi bi-hourglass-split" style="font-size:1.25rem;color:#ca8a04;"></i>
-            </div>
-            <div>
-                <div class="stat-value">{{ pending_projects }}</div>
-                <div class="stat-label">Pending</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon-box" style="background:#dbeafe;">
-                <i class="bi bi-mortarboard" style="font-size:1.25rem;color:#2563eb;"></i>
-            </div>
-            <div>
-                <div class="stat-value">{{ total_streams }}</div>
-                <div class="stat-label">Streams</div>
-            </div>
-        </div>
-        {% if user.role.value == 'admin' %}
-        <a href="{{ url_for('admin_bp.settings') }}" class="stat-card" style="text-decoration:none;cursor:pointer;">
-            <div class="stat-icon-box" style="background:#f3e8ff;">
-                <i class="bi bi-gear" style="font-size:1.25rem;color:#7c3aed;"></i>
-            </div>
-            <div>
-                <div class="stat-value" style="font-size:1rem;padding-top:2px;">Settings</div>
-                <div class="stat-label">Manage Supervisors</div>
-            </div>
+        <div class="stat-label">Manage Supervisors</div>
+      </div>
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- Admin Quick Actions -->
+  {% if user.role.value == 'admin' %}
+  <div class="oc-card" style="margin-bottom: 1.2rem">
+    <div class="oc-card-header">
+      <h2 class="oc-card-title">
+        <i
+          class="bi bi-shield-check"
+          style="color: var(--green-primary); margin-right: 6px"
+        ></i
+        >Admin Quick Actions
+      </h2>
+    </div>
+    <div
+      class="oc-card-body"
+      style="display: flex; gap: 0.75rem; flex-wrap: wrap"
+    >
+      <a
+        href="{{ url_for('admin_bp.settings') }}"
+        class="btn-oc btn-oc-outline"
+      >
+        <i class="bi bi-person-badge"></i> Manage Supervisors
+      </a>
+      <a
+        href="{{ url_for('projects.projects') }}?status=pending"
+        class="btn-oc btn-oc-outline"
+      >
+        <i class="bi bi-hourglass-split"></i> Pending Reviews
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Two-col content -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem">
+    <!-- Your Projects -->
+    <div class="oc-card">
+      <div class="oc-card-header">
+        <h2 class="oc-card-title">Your Projects</h2>
+        {% if user.role.value == 'student' %}
+        <a
+          href="{{ url_for('projects.new_project') }}"
+          class="btn-oc btn-oc-outline btn-oc-sm"
+        >
+          <i class="bi bi-plus-lg"></i> New
         </a>
         {% endif %}
+      </div>
+      {% if user_projects %} {% for project in user_projects %}
+      <a
+        href="{{ url_for('projects.project_detail', project_id=project.id) }}"
+        class="oc-list-item"
+      >
+        <div style="flex: 1; min-width: 0">
+          <div
+            style="
+              font-weight: 600;
+              font-size: 0.92rem;
+              margin-bottom: 0.2rem;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            "
+          >
+            {{ project.title }}
+          </div>
+          <div
+            style="
+              font-size: 0.8rem;
+              color: var(--text-muted);
+              margin-bottom: 0.25rem;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            "
+          >
+            {{ project.description[:90] }}{% if project.description|length > 90
+            %}...{% endif %}
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted)">
+            <i class="bi bi-calendar"></i> {{ project.submitted_at|timeago }}
+          </div>
+        </div>
+        <span class="oc-badge badge-{{ project.status.value }}"
+          >{{ project.status.value|title }}</span
+        >
+      </a>
+      {% endfor %}
+      <div
+        style="
+          padding: 1rem 1.4rem;
+          border-top: 1px solid var(--border);
+          text-align: center;
+        "
+      >
+        <a
+          href="{{ url_for('projects.projects') }}"
+          class="btn-oc btn-oc-outline btn-oc-sm"
+          >View All Projects</a
+        >
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">
+          <i
+            class="bi bi-folder-plus"
+            style="font-size: 1.6rem; color: var(--green-primary)"
+          ></i>
+        </div>
+        <p class="empty-title">No projects yet</p>
+        <p class="empty-text">Get started by submitting your first project.</p>
+        {% if user.role.value == 'student' %}
+        <a
+          href="{{ url_for('projects.new_project') }}"
+          class="btn-oc btn-oc-primary"
+          >Create First Project</a
+        >
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
 
-    <!-- Admin Quick Actions -->
-    {% if user.role.value == 'admin' %}
-    <div class="oc-card" style="margin-bottom:1.2rem;">
-        <div class="oc-card-header">
-            <h2 class="oc-card-title"><i class="bi bi-shield-check" style="color:var(--green-primary);margin-right:6px;"></i>Admin Quick Actions</h2>
+    <!-- Notifications -->
+    <div class="oc-card">
+      <div class="oc-card-header">
+        <h2 class="oc-card-title">Notifications</h2>
+        <a
+          href="{{ url_for('notifications_bp.notifications') }}"
+          class="btn-oc btn-oc-outline btn-oc-sm"
+          >View All</a
+        >
+      </div>
+
+      {% if recent_projects and (user.role.value == 'admin' or user.role.value
+      == 'reviewer') %}
+      <div
+        style="padding: 0.7rem 1.4rem; border-bottom: 1px solid var(--border)"
+      >
+        <span
+          style="
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          "
+          >Recent Submissions</span
+        >
+      </div>
+      {% for project in recent_projects[:5] %}
+      <a
+        href="{{ url_for('projects.project_detail', project_id=project.id) }}"
+        class="oc-list-item"
+      >
+        <div style="flex: 1; min-width: 0">
+          <div
+            style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.15rem"
+          >
+            {{ project.title }}
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted)">
+            by {{ project.author.full_name }} · {{ project.submitted_at|timeago
+            }}
+          </div>
         </div>
-        <div class="oc-card-body" style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-            <a href="{{ url_for('admin_bp.settings') }}" class="btn-oc btn-oc-outline">
-                <i class="bi bi-person-badge"></i> Manage Supervisors
-            </a>
-            <a href="{{ url_for('projects.projects') }}?status=pending" class="btn-oc btn-oc-outline">
-                <i class="bi bi-hourglass-split"></i> Pending Reviews
-            </a>
+        <span class="oc-badge badge-{{ project.status.value }}"
+          >{{ project.status.value|title }}</span
+        >
+      </a>
+      {% endfor %} {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">
+          <i
+            class="bi bi-bell"
+            style="font-size: 1.6rem; color: var(--green-primary)"
+          ></i>
         </div>
+        <p class="empty-title">All caught up</p>
+        <p class="empty-text">No new notifications right now.</p>
+      </div>
+      {% endif %}
     </div>
-    {% endif %}
-
-    <!-- Two-col content -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
-
-        <!-- Your Projects -->
-        <div class="oc-card">
-            <div class="oc-card-header">
-                <h2 class="oc-card-title">Your Projects</h2>
-                <a href="{{ url_for('projects.new_project') }}" class="btn-oc btn-oc-outline btn-oc-sm">
-                    <i class="bi bi-plus-lg"></i> New
-                </a>
-            </div>
-            {% if user_projects %}
-                {% for project in user_projects %}
-                <a href="{{ url_for('projects.project_detail', project_id=project.id) }}" class="oc-list-item">
-                    <div style="flex:1;min-width:0;">
-                        <div style="font-weight:600;font-size:0.92rem;margin-bottom:0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ project.title }}</div>
-                        <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                            {{ project.description[:90] }}{% if project.description|length > 90 %}...{% endif %}
-                        </div>
-                        <div style="font-size:0.75rem;color:var(--text-muted);">
-                            <i class="bi bi-calendar"></i> {{ project.submitted_at|timeago }}
-                        </div>
-                    </div>
-                    <span class="oc-badge badge-{{ project.status.value }}">{{ project.status.value|title }}</span>
-                </a>
-                {% endfor %}
-                <div style="padding:1rem 1.4rem;border-top:1px solid var(--border);text-align:center;">
-                    <a href="{{ url_for('projects.projects') }}" class="btn-oc btn-oc-outline btn-oc-sm">View All Projects</a>
-                </div>
-            {% else %}
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="bi bi-folder-plus" style="font-size:1.6rem;color:var(--green-primary);"></i>
-                    </div>
-                    <p class="empty-title">No projects yet</p>
-                    <p class="empty-text">Get started by submitting your first project.</p>
-                    <a href="{{ url_for('projects.new_project') }}" class="btn-oc btn-oc-primary">Create First Project</a>
-                </div>
-            {% endif %}
-        </div>
-
-        <!-- Notifications -->
-        <div class="oc-card">
-            <div class="oc-card-header">
-                <h2 class="oc-card-title">
-                    Notifications
-                </h2>
-                <a href="{{ url_for('notifications_bp.notifications') }}" class="btn-oc btn-oc-outline btn-oc-sm">View All</a>
-            </div>
-
-            {% if recent_projects and (user.role.value == 'admin' or user.role.value == 'reviewer') %}
-                <div style="padding:0.7rem 1.4rem;border-bottom:1px solid var(--border);">
-                    <span style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Recent Submissions</span>
-                </div>
-                {% for project in recent_projects[:5] %}
-                <a href="{{ url_for('projects.project_detail', project_id=project.id) }}" class="oc-list-item">
-                    <div style="flex:1;min-width:0;">
-                        <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.15rem;">{{ project.title }}</div>
-                        <div style="font-size:0.78rem;color:var(--text-muted);">
-                            by {{ project.author.full_name }} · {{ project.submitted_at|timeago }}
-                        </div>
-                    </div>
-                    <span class="oc-badge badge-{{ project.status.value }}">{{ project.status.value|title }}</span>
-                </a>
-                {% endfor %}
-            {% else %}
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="bi bi-bell" style="font-size:1.6rem;color:var(--green-primary);"></i>
-                    </div>
-                    <p class="empty-title">All caught up</p>
-                    <p class="empty-text">No new notifications right now.</p>
-                </div>
-            {% endif %}
-        </div>
-
-    </div>
+  </div>
 </div>
 
 <style>
-@media(max-width:768px){
-    div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important;}
-}
+  @media (max-width: 768px) {
+    div[style*="grid-template-columns:1fr 1fr"] {
+      grid-template-columns: 1fr !important;
+    }
+  }
 </style>
 {% endblock %}

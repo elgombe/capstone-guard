@@ -35,16 +35,58 @@ def settings():
 
 # ── PARTIALS ─────────────────────────────────────────────────────────────────
 
-@admin_bp.route('/admin/partials/supervisors')
+@admin_bp.route('/settings/partial/supervisors')
 @login_required
 @admin_required
 def partial_supervisors():
-    supervisors = User.query.filter_by(role=UserRole.SUPERVISOR)\
-        .order_by(User.created_at.desc()).all()
-    streams = Stream.query.filter_by(is_active=True).order_by(Stream.name).all()
-    return render_template('partials/settings_supervisors.html',
-                           supervisors=supervisors, streams=streams)
+    from models.db import User, UserRole
+    supervisors = User.query.filter_by(
+        role=UserRole.SUPERVISOR, is_active=True
+    ).order_by(User.full_name).all()
+ 
+    # All active students
+    all_students = User.query.filter_by(
+        role=UserRole.STUDENT, is_active=True
+    ).order_by(User.full_name).all()
+ 
+    assigned_students   = [s for s in all_students if s.supervisor_id]
+    unassigned_students = [s for s in all_students if not s.supervisor_id]
+ 
+    return render_template(
+        'partials/settings_supervisors.html',
+        supervisors=supervisors,
+        assigned_students=assigned_students,
+        unassigned_students=unassigned_students,
+    )
 
+@admin_bp.route('/settings/assign-supervisor', methods=['POST'])
+@login_required
+@admin_required
+def assign_supervisor():
+    from models.db import User, UserRole, db
+    student_id    = request.form.get('student_id', type=int)
+    supervisor_id = request.form.get('supervisor_id', type=int)  # None = remove
+ 
+    student = User.query.get_or_404(student_id)
+    if student.role != UserRole.STUDENT:
+        flash('Only students can be assigned a supervisor.', 'danger')
+        return redirect(url_for('admin_bp.settings') + '?tab=supervisors')
+ 
+    if supervisor_id:
+        sup = User.query.get_or_404(supervisor_id)
+        if sup.role != UserRole.SUPERVISOR:
+            flash('Selected user is not a supervisor.', 'danger')
+            return redirect(url_for('admin_bp.settings') + '?tab=supervisors')
+        student.supervisor_id = supervisor_id
+        flash(f'{student.full_name} assigned to {sup.full_name}.', 'success')
+    else:
+        student.supervisor_id = None
+        flash(f'Supervisor removed from {student.full_name}.', 'success')
+ 
+    db.session.commit()
+ 
+    # Re-render the supervisors partial via HTMX
+    return redirect(url_for('admin_bp.partial_supervisors'))
 
 @admin_bp.route('/admin/partials/users')
 @login_required

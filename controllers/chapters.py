@@ -88,10 +88,16 @@ def _notify_users(project, title, message, ntype):
 
 
 def _notify_supervisor(project, title, message, ntype):
-    """Notify the HIT200 supervisor (or any reviewer/admin for HIT400)."""
-    if (project.category == ProjectCategory.HIT200 and
-            project.group and project.group.supervisor_id):
-        n = Notification(user_id=project.group.supervisor_id,
+    """Notify the assigned supervisor for HIT200 group or HIT400 student."""
+    supervisor_id = None
+    if project.category == ProjectCategory.HIT200:
+        if project.group:
+            supervisor_id = project.group.supervisor_id
+    else:  # HIT400
+        supervisor_id = project.author.supervisor_id
+
+    if supervisor_id:
+        n = Notification(user_id=supervisor_id,
                          title=title, message=message,
                          notification_type=ntype,
                          related_project_id=project.id)

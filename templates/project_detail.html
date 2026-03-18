@@ -205,7 +205,15 @@
         <div>
 
             {# ── Supervisor / Admin / Reviewer: Update Status ── #}
-            {% if session.user_role in ['admin', 'reviewer', 'supervisor'] and project.status.value != 'approved' %}
+            {# Supervisor guard: HIT400 supervisor must be the assigned one; HIT200 must be the group supervisor #}
+            {% set can_review_project =
+                session.user_role in ['admin', 'reviewer'] or
+                (session.user_role == 'supervisor' and (
+                    (project.category.value == 'hit200' and project.group and project.group.supervisor_id == session.user_id) or
+                    (project.category.value == 'hit400' and project.author.supervisor_id == session.user_id)
+                ))
+            %}
+            {% if can_review_project and project.status.value != 'approved' %}
             <div class="oc-card" style="margin-bottom:1rem;border:1.5px solid var(--green-primary);">
                 <div class="oc-card-header">
                     <h2 class="oc-card-title">
@@ -261,7 +269,7 @@
             {% endif %}
 
             {# ── Already approved: show chapters link for reviewer/supervisor/admin ── #}
-            {% if session.user_role in ['admin', 'reviewer', 'supervisor'] and project.status.value == 'approved' and chapter_count > 0 %}
+            {% if can_review_project and project.status.value == 'approved' and chapter_count > 0 %}
             <div class="oc-card" style="margin-bottom:1rem;">
                 <div class="oc-card-body" style="text-align:center;padding:1.2rem;">
                     <i class="bi bi-journal-text" style="font-size:1.8rem;color:var(--green-primary);display:block;margin-bottom:0.5rem;"></i>
@@ -348,6 +356,19 @@
                     <div style="margin-bottom:0.9rem;">
                         <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.2rem;">Supervisor</div>
                         <div style="font-weight:600;font-size:0.9rem;color:var(--text-dark);">{{ project.group.supervisor.full_name }}</div>
+                    </div>
+                    {% elif project.category and project.category.value == 'hit400' and project.author.supervisor %}
+                    <div style="margin-bottom:0.9rem;">
+                        <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.2rem;">Supervisor</div>
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                            <div class="avatar-circle" style="width:26px;height:26px;font-size:0.68rem;
+                                         background:#ede9fe;color:#6d28d9;flex-shrink:0;">
+                                {{ project.author.supervisor.full_name[0].upper() }}
+                            </div>
+                            <span style="font-weight:600;font-size:0.9rem;color:var(--text-dark);">
+                                {{ project.author.supervisor.full_name }}
+                            </span>
+                        </div>
                     </div>
                     {% endif %}
 

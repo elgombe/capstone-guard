@@ -105,6 +105,10 @@ class User(db.Model):
     is_active   = db.Column(db.Boolean, default=True,  nullable=False)
     is_verified = db.Column(db.Boolean, default=False, nullable=False)
 
+    # HIT400: assigned supervisor (one supervisor can supervise many students)
+    supervisor_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                              nullable=True, index=True)
+
     # Relationships
     projects          = db.relationship('Project', foreign_keys='Project.user_id',
                                         backref='author', lazy='dynamic',
@@ -115,6 +119,7 @@ class User(db.Model):
                                         cascade='all, delete-orphan')
     notifications     = db.relationship('Notification', backref='user', lazy='dynamic',
                                         cascade='all, delete-orphan')
+    # HIT400 supervisor relationship defined below the class (self-referential)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -135,10 +140,22 @@ class User(db.Model):
             'created_at': self.created_at.isoformat(),
             'is_active': self.is_active,
             'is_verified': self.is_verified,
+            'supervisor_id': self.supervisor_id,
         }
 
     def __repr__(self):
         return f'<User {self.email}>'
+
+
+# Self-referential HIT400 supervisor relationship (adjacency list pattern).
+# supervisees: one supervisor → many students (the FK is on the student row)
+# supervisor:  one student   → one supervisor (scalar, via backref)
+User.supervisees = db.relationship(
+    'User',
+    foreign_keys=[User.supervisor_id],
+    backref=db.backref('supervisor', remote_side=[User.id], uselist=False),
+    lazy='dynamic'
+)
 
 
 class Stream(db.Model):

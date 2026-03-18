@@ -103,7 +103,8 @@
                                hx-post="{{ url_for('htmx_bp.htmx_check_duplicate') }}"
                                hx-trigger="keyup changed delay:1s"
                                hx-include="[name='description']"
-                               hx-target="#duplicateCheck">
+                               hx-target="#duplicateCheck"
+                               hx-indicator="#dupSpinner">
                     </div>
 
                     <div class="field" style="margin-top:1rem;">
@@ -115,14 +116,34 @@
                                   hx-post="{{ url_for('htmx_bp.htmx_check_duplicate') }}"
                                   hx-trigger="keyup changed delay:1s"
                                   hx-include="[name='title']"
-                                  hx-target="#duplicateCheck"></textarea>
+                                  hx-target="#duplicateCheck"
+                                  hx-indicator="#dupSpinner"></textarea>
                         <p class="oc-help">Minimum 100 characters</p>
                     </div>
 
-                    <!-- Duplicate check results -->
-                    <div id="duplicateCheck"></div>
+                    <!-- Duplicate check results + loading indicator -->
+                    <div style="margin-top:0.5rem;">
 
-                    <div class="field" style="margin-top:1rem;">
+                        {# Loading spinner — shown by HTMX while request is in flight #}
+                        <div id="dupSpinner" class="htmx-indicator"
+                             style="display:none;align-items:center;gap:0.6rem;
+                                    padding:0.75rem 1rem;
+                                    background:#f0f7ff;border:1px solid #bfdbfe;
+                                    border-radius:9px;font-size:0.85rem;color:#1e40af;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2.5"
+                                 style="animation:dupSpin 0.8s linear infinite;flex-shrink:0;">
+                                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                            </svg>
+                            Checking for similar projects…
+                        </div>
+
+                        {# Results injected here by HTMX #}
+                        <div id="duplicateCheck"></div>
+
+                    </div>
+
+                    <div class="field" style="margin-top:1rem;" id="streamSection">
                         <label class="oc-label">Stream <span style="color:#e53e3e;">*</span></label>
                         <div style="display:grid;grid-template-columns:1fr 140px;gap:0.75rem;">
                             <div>
@@ -145,6 +166,9 @@
                         <!-- Hidden stream_id resolved by JS -->
                         <input type="hidden" id="stream_id" name="stream_id">
                         <p id="streamStatus" class="oc-help" style="margin-top:6px;"></p>
+                        <p id="streamAutoNote" class="oc-help" style="margin-top:4px;display:none;color:var(--green-primary);">
+                            <i class="bi bi-lock-fill"></i> Auto-filled from your group's stream.
+                        </p>
                     </div>
 
                     <div class="field" style="margin-top:1rem;">
@@ -163,9 +187,19 @@
                         <input type="url" class="oc-input" id="demo_url" name="demo_url" placeholder="https://example.com">
                     </div>
 
-                    <div style="display:flex;gap:0.75rem;margin-top:1.8rem;">
+                    <div style="display:flex;gap:0.75rem;margin-top:1.8rem;flex-wrap:wrap;align-items:center;">
                         <a href="{{ url_for('dashboard.dash') }}" class="btn-oc btn-oc-outline">Cancel</a>
-                        <button type="submit" class="btn-oc btn-oc-primary">Submit Project</button>
+                        {% if no_supervisor and not user_in_group %}
+                        <button type="button" class="btn-oc btn-oc-primary"
+                                style="opacity:0.5;cursor:not-allowed;"
+                                onclick="alert('You cannot submit a HIT400 project without an assigned supervisor. Please contact the administrator.')">
+                            <i class="bi bi-lock-fill"></i> Submit Project
+                        </button>
+                        {% else %}
+                        <button type="submit" class="btn-oc btn-oc-primary">
+                            <i class="bi bi-send"></i> Submit Project
+                        </button>
+                        {% endif %}
                     </div>
                 </form>
             </div>
@@ -173,6 +207,53 @@
 
         <!-- Sidebar -->
         <div style="display:flex;flex-direction:column;gap:1rem;">
+
+            {# ── Supervisor status card (students only) ── #}
+            {% if session.user_role == 'student' and not user_in_group %}
+            {% if student_supervisor %}
+            <div class="oc-card" style="border:1.5px solid #86efac;">
+                <div class="oc-card-header" style="background:#f0fdf4;">
+                    <h3 class="oc-card-title" style="font-size:0.92rem;color:#166534;">
+                        <i class="bi bi-person-check-fill" style="margin-right:6px;"></i> Your Supervisor
+                    </h3>
+                </div>
+                <div class="oc-card-body" style="padding:1rem 1.2rem;">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <div class="avatar-circle" style="width:38px;height:38px;font-size:0.9rem;
+                                     background:#ede9fe;color:#6d28d9;flex-shrink:0;">
+                            {{ student_supervisor.full_name[0].upper() }}
+                        </div>
+                        <div>
+                            <div style="font-weight:700;font-size:0.92rem;color:var(--text-dark);">
+                                {{ student_supervisor.full_name }}
+                            </div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">
+                                {{ student_supervisor.email }}
+                            </div>
+                        </div>
+                    </div>
+                    <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.6rem;margin-bottom:0;line-height:1.5;">
+                        This supervisor will review and approve your project before chapters unlock.
+                    </p>
+                </div>
+            </div>
+            {% else %}
+            <div class="oc-card" style="border:1.5px solid #fecaca;">
+                <div class="oc-card-header" style="background:#fff5f5;">
+                    <h3 class="oc-card-title" style="font-size:0.92rem;color:#991b1b;">
+                        <i class="bi bi-exclamation-triangle-fill" style="margin-right:6px;"></i> No Supervisor Assigned
+                    </h3>
+                </div>
+                <div class="oc-card-body" style="padding:1rem 1.2rem;">
+                    <p style="font-size:0.82rem;color:#7f1d1d;line-height:1.6;margin:0;">
+                        You do not have an assigned supervisor for HIT400.
+                        Please contact the administrator to be assigned one
+                        before you can submit a project.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
 
             <div class="oc-card">
                 <div class="oc-card-header">
@@ -237,11 +318,25 @@
 @media(max-width:600px){
     div[style*="grid-template-columns:1fr 140px"]{grid-template-columns:1fr !important;}
 }
+@keyframes dupSpin {
+    to { transform: rotate(360deg); }
+}
+/* HTMX shows elements with this class while a request is in flight */
+.htmx-indicator          { display: none !important; }
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator { display: flex !important; }
 </style>
 
 <script>
 // stream_map is built from the server: { "YEAR PROG": id, ... }
 const streamMap = {{ stream_map | tojson }};
+
+// group → stream parts map: { group_id: { year, prog } }
+const groupStreamMap = {
+    {% for g in groups %}
+    {{ g.id }}: { year: '{{ g.stream.name.split(" ")[0] }}', prog: '{{ g.stream.name.split(" ")[1] if g.stream.name.split(" ")|length > 1 else "" }}' },
+    {% endfor %}
+};
 
 function resolveStream() {
     const prog = document.getElementById('program').value.trim();
@@ -292,9 +387,97 @@ function toggleCategory() {
     }
 }
 
+// Auto-fill programme and year from selected group's stream
+function autoFillStream() {
+    const groupId = document.getElementById('group_id').value;
+    const progEl  = document.getElementById('program');
+    const yearEl  = document.getElementById('intake_year');
+    const streamSection = document.getElementById('streamSection');
+
+    if (groupId && groupStreamMap[groupId]) {
+        const { year, prog } = groupStreamMap[groupId];
+
+        // Set values
+        progEl.value = prog;
+        yearEl.value = year;
+
+        // Lock the year input
+        yearEl.setAttribute('readonly', true);
+        yearEl.style.background = 'var(--bg)'; yearEl.style.cursor = 'not-allowed';
+
+        // Lock the programme select — disable it and add a hidden input backup
+        // (disabled selects don't submit, so we need the hidden field)
+        progEl.disabled = true;
+        progEl.removeAttribute('name');
+        let progHidden = document.getElementById('program_hidden');
+        if (!progHidden) {
+            progHidden = document.createElement('input');
+            progHidden.type = 'hidden';
+            progHidden.id   = 'program_hidden';
+            progHidden.name = 'program';
+            progEl.parentNode.appendChild(progHidden);
+        }
+        progHidden.value = prog;
+
+        // Also lock the CustomSelect trigger button that wraps the <select>
+        const csTrigger = progEl.closest('.cs-wrapper')
+                       && progEl.closest('.cs-wrapper').querySelector('.cs-trigger');
+        if (csTrigger) {
+            csTrigger.disabled = true;
+            csTrigger.style.opacity      = '0.55';
+            csTrigger.style.cursor       = 'not-allowed';
+            csTrigger.style.pointerEvents= 'none';
+        }
+
+        if (streamSection) streamSection.style.opacity = '0.75';
+        const note = document.getElementById('streamAutoNote');
+        if (note) note.style.display = 'block';
+
+        resolveStream();
+    } else {
+        // Unlock year
+        yearEl.removeAttribute('readonly');
+        yearEl.style.background = ''; yearEl.style.cursor = '';
+
+        // Unlock programme select
+        progEl.disabled = false;
+        progEl.name = 'program';
+        const progHidden = document.getElementById('program_hidden');
+        if (progHidden) progHidden.remove();
+
+        // Unlock CustomSelect trigger
+        const csTrigger = progEl.closest('.cs-wrapper')
+                       && progEl.closest('.cs-wrapper').querySelector('.cs-trigger');
+        if (csTrigger) {
+            csTrigger.disabled = false;
+            csTrigger.style.opacity      = '';
+            csTrigger.style.cursor       = '';
+            csTrigger.style.pointerEvents= '';
+        }
+
+        if (streamSection) streamSection.style.opacity = '1';
+        const note = document.getElementById('streamAutoNote');
+        if (note) note.style.display = 'none';
+    }
+}
+
 // Run on page load to show/hide group field correctly
+// Use setTimeout(0) so CustomSelect widget finishes building before we lock it
 document.addEventListener('DOMContentLoaded', function() {
     toggleCategory();
+
+    const groupSel = document.getElementById('group_id');
+    if (groupSel) {
+        // Listen on the native select — CustomSelect dispatches a real 'change' event
+        groupSel.addEventListener('change', function() {
+            // Defer so CustomSelect finishes updating its visual state first
+            setTimeout(autoFillStream, 0);
+        });
+        // Auto-fill on load if a value is already selected
+        if (groupSel.value) {
+            setTimeout(autoFillStream, 0);
+        }
+    }
 });
 </script>
 {% endblock %}

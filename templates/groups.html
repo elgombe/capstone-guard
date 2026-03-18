@@ -28,21 +28,26 @@
         </div>
         <div class="oc-card-body">
             <form method="POST" action="{{ url_for('groups_bp.create_group') }}">
-                <div style="display:grid;grid-template-columns:1fr 1fr {% if user.role.value == 'admin' %}1fr {% endif %}auto;gap:0.75rem;align-items:end;">
+                <div style="display:grid;grid-template-columns:1fr 120px 120px {% if user.role.value == 'admin' %}1fr {% endif %}auto;gap:0.75rem;align-items:end;">
                     <div>
                         <label class="oc-label">Group Name <span style="color:#e53e3e;">*</span></label>
                         <input type="text" class="oc-input" name="name"
                                placeholder="e.g. Group A, Team Phoenix" required>
                     </div>
                     <div>
-                        <label class="oc-label">Stream <span style="color:#e53e3e;">*</span></label>
-                        <select class="oc-select" name="stream_id" required>
-                            <option value="">Select stream…</option>
-                            {% for stream in streams %}
-                            <option value="{{ stream.id }}">{{ stream.name }}</option>
-                            {% endfor %}
-                        </select>
+                        <label class="oc-label">Year <span style="color:#e53e3e;">*</span></label>
+                        <input type="number" class="oc-input" id="grp_year" name="grp_year"
+                               placeholder="2026" min="2023" max="2030" required
+                               oninput="resolveGroupStream()">
                     </div>
+                    <div>
+                        <label class="oc-label">Programme <span style="color:#e53e3e;">*</span></label>
+                        <input type="text" class="oc-input" id="grp_prog" name="grp_prog"
+                               placeholder="ICS" style="text-transform:uppercase;"
+                               oninput="this.value=this.value.toUpperCase();resolveGroupStream()" required>
+                    </div>
+                    <!-- Hidden stream_id resolved by JS -->
+                    <input type="hidden" id="grp_stream_id" name="stream_id">
                     {% if user.role.value == 'admin' %}
                     <div>
                         <label class="oc-label">Assign To Supervisor</label>
@@ -54,8 +59,10 @@
                         </select>
                     </div>
                     {% endif %}
-                    <div>
-                        <button type="submit" class="btn-oc btn-oc-primary" style="white-space:nowrap;">
+                    <div style="display:flex;flex-direction:column;gap:4px;">
+                        <div id="grpStreamStatus" style="font-size:0.72rem;min-height:16px;"></div>
+                        <button type="submit" class="btn-oc btn-oc-primary" style="white-space:nowrap;"
+                                onclick="return validateGroupStream(event)">
                             <i class="bi bi-plus-lg"></i> Create Group
                         </button>
                     </div>
@@ -239,6 +246,225 @@
         </div>
     {% endif %}
 
+    {# ══════════════════════════════════════════════════════════════════
+       HIT400 STUDENTS — supervisor assigns/manages individual students
+       ══════════════════════════════════════════════════════════════════ #}
+    <div style="margin-top:2rem;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;
+                    margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;">
+            <div>
+                <h2 class="page-title" style="font-size:1.3rem;margin-bottom:0.2rem;">HIT400 Students</h2>
+                <p class="page-subtitle">Individual students under your supervision.</p>
+            </div>
+        </div>
+
+        {# ── Add student form ── #}
+        {% if unassigned_students %}
+        <div class="oc-card" style="margin-bottom:1.2rem;">
+            <div class="oc-card-header">
+                <h3 class="oc-card-title">
+                    <i class="bi bi-person-plus" style="color:var(--green-primary);margin-right:6px;"></i>
+                    Add HIT400 Student
+                </h3>
+            </div>
+            <div class="oc-card-body">
+                <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">
+                    Select an unassigned student to supervise for their HIT400 project.
+                </p>
+                <form method="POST" action="{{ url_for('groups_bp.add_hit400_student') }}"
+                      id="add-hit400-form">
+                    <div style="display:grid;grid-template-columns:1fr {% if user.role.value == 'admin' %}1fr {% endif %}auto;gap:0.75rem;align-items:end;">
+
+                        <!-- Autocomplete student search -->
+                        <div>
+                            <label class="oc-label">Student <span style="color:#e53e3e;">*</span></label>
+                            <!-- Hidden: holds the resolved student_id -->
+                            <input type="hidden" name="student_id" id="sid-hit400" required>
+                            <div style="position:relative;">
+                                <i class="bi bi-search" style="position:absolute;left:10px;top:50%;
+                                   transform:translateY(-50%);color:var(--text-muted);font-size:0.82rem;
+                                   pointer-events:none;z-index:1;"></i>
+                                <input type="text"
+                                       id="stxt-hit400"
+                                       placeholder="Type a name or email…"
+                                       autocomplete="off"
+                                       style="width:100%;padding:0.6rem 0.9rem 0.6rem 2rem;
+                                              border:1.5px solid var(--border);border-radius:9px;
+                                              font-family:'DM Sans',sans-serif;font-size:0.88rem;
+                                              color:var(--text-dark);background:var(--white);outline:none;
+                                              transition:border-color 0.15s;"
+                                       hx-get="{{ url_for('groups_bp.available_hit400_students') }}"
+                                       hx-trigger="input changed delay:250ms"
+                                       hx-target="#sres-hit400"
+                                       hx-swap="innerHTML"
+                                       onfocus="document.getElementById('sres-hit400').style.display='block'"
+                                       oninput="document.getElementById('sid-hit400').value='';
+                                                this.style.borderColor='var(--border)';">
+                                <!-- Dropdown results -->
+                                <div id="sres-hit400"
+                                     style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;
+                                            background:var(--white);border:1.5px solid var(--border);
+                                            border-radius:10px;box-shadow:0 8px 24px rgba(0,40,85,0.12);
+                                            z-index:500;max-height:220px;overflow-y:auto;">
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if user.role.value == 'admin' %}
+                        <div>
+                            <label class="oc-label">Assign To Supervisor</label>
+                            <select class="oc-select" name="supervisor_id">
+                                <option value="">Self (admin)</option>
+                                {% for sup in supervisors_list %}
+                                <option value="{{ sup.id }}">{{ sup.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <div>
+                            <button type="submit" class="btn-oc btn-oc-primary"
+                                    style="white-space:nowrap;"
+                                    onclick="if(!document.getElementById('sid-hit400').value){
+                                                 event.preventDefault();
+                                                 document.getElementById('stxt-hit400').style.borderColor='#e53e3e';
+                                             }">
+                                <i class="bi bi-person-check"></i> Add Student
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── Current HIT400 students list ── #}
+        {% if hit400_students %}
+        <div class="oc-card">
+            <div class="oc-card-header">
+                <h3 class="oc-card-title">
+                    <i class="bi bi-person-lines-fill" style="color:var(--green-primary);margin-right:6px;"></i>
+                    My HIT400 Students
+                    <span style="font-size:0.8rem;font-weight:500;color:var(--text-muted);margin-left:8px;">
+                        ({{ hit400_students|length }})
+                    </span>
+                </h3>
+            </div>
+            <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+                    <thead>
+                        <tr style="border-bottom:1px solid var(--border);">
+                            <th style="padding:0.75rem 1.4rem;text-align:left;font-size:0.72rem;font-weight:700;
+                                       color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Student</th>
+                            <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;
+                                       color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Email</th>
+                            {% if user.role.value == 'admin' %}
+                            <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;
+                                       color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Supervisor</th>
+                            {% endif %}
+                            <th style="padding:0.75rem 1rem;text-align:left;font-size:0.72rem;font-weight:700;
+                                       color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Project</th>
+                            <th style="padding:0.75rem 1.4rem;text-align:right;font-size:0.72rem;font-weight:700;
+                                       color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in hit400_students %}
+                        {# hit400 project resolved below #}
+                        <tr style="border-bottom:1px solid var(--border);" class="hit400-row">
+                            <td style="padding:0.9rem 1.4rem;">
+                                <div style="display:flex;align-items:center;gap:0.65rem;">
+                                    {% if student.profile_picture %}
+                                    <img src="{{ student.profile_picture }}" alt=""
+                                         style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+                                    {% else %}
+                                    <div class="avatar-circle" style="width:32px;height:32px;font-size:0.8rem;flex-shrink:0;">
+                                        {{ student.full_name[0].upper() }}
+                                    </div>
+                                    {% endif %}
+                                    <span style="font-weight:600;color:var(--text-dark);">{{ student.full_name }}</span>
+                                </div>
+                            </td>
+                            <td style="padding:0.9rem 1rem;color:var(--text-muted);">{{ student.email }}</td>
+                            {% if user.role.value == 'admin' %}
+                            <td style="padding:0.9rem 1rem;">
+                                {% if student.supervisor %}
+                                <div style="display:flex;align-items:center;gap:0.5rem;">
+                                    <div class="avatar-circle" style="width:24px;height:24px;font-size:0.65rem;
+                                                 background:#ede9fe;color:#6d28d9;flex-shrink:0;">
+                                        {{ student.supervisor.full_name[0].upper() }}
+                                    </div>
+                                    <span style="font-size:0.85rem;font-weight:600;">{{ student.supervisor.full_name }}</span>
+                                </div>
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                            <td style="padding:0.9rem 1rem;">
+                                {# Look up the student's HIT400 project from the pre-fetched dict #}
+                                {% set proj = hit400_projects.get(student.id) %}
+                                {% if proj %}
+                                <a href="{{ url_for('projects.project_detail', project_id=proj.id) }}"
+                                   style="font-size:0.85rem;font-weight:600;color:var(--green-primary);text-decoration:none;
+                                          display:flex;align-items:center;gap:0.4rem;">
+                                    <i class="bi bi-folder2-open"></i>
+                                    <span style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                        {{ proj.title }}
+                                    </span>
+                                    <span class="oc-badge badge-{{ proj.status.value }}" style="font-size:0.68rem;">
+                                        {{ proj.status.value|replace('_',' ')|title }}
+                                    </span>
+                                </a>
+                                {% else %}
+                                <span style="font-size:0.82rem;color:var(--text-muted);font-style:italic;">
+                                    No project yet
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td style="padding:0.9rem 1.4rem;text-align:right;">
+                                <div style="display:flex;gap:0.4rem;justify-content:flex-end;">
+                                    {% if proj %}
+                                    <a href="{{ url_for('projects.project_detail', project_id=proj.id) }}"
+                                       class="btn-oc btn-oc-outline btn-oc-sm">
+                                        <i class="bi bi-eye"></i> View Project
+                                    </a>
+                                    {% endif %}
+                                    <form method="POST"
+                                          action="{{ url_for('groups_bp.remove_hit400_student', student_id=student.id) }}"
+                                          onsubmit="return confirm('Remove {{ student.full_name }} from your HIT400 supervision?')">
+                                        <button type="submit" class="btn-oc btn-oc-sm"
+                                                style="background:#fef2f2;color:#b91c1c;border:1.5px solid #fecaca;">
+                                            <i class="bi bi-person-dash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="oc-card">
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="bi bi-person-plus" style="font-size:1.6rem;color:var(--green-primary);"></i>
+                </div>
+                <p class="empty-title">No HIT400 students yet</p>
+                <p class="empty-text">
+                    {% if unassigned_students %}
+                    Use the form above to add a student to your supervision.
+                    {% else %}
+                    All registered students already have a supervisor assigned.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
 </div>
 
 <style>
@@ -246,9 +472,55 @@
     div[style*="grid-template-columns:1fr 320px"] { grid-template-columns:1fr !important; }
     div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns:1fr !important; }
 }
+.hit400-row:last-child { border-bottom:none; }
+.hit400-row:hover { background:var(--bg); }
 </style>
 
 <script>
+// ── Stream resolution for Create Group form (supervisor) ─────────────────────
+const streamMap = {{ stream_map | tojson }};
+
+function resolveGroupStream() {
+    const year   = document.getElementById('grp_year').value.trim();
+    const prog   = document.getElementById('grp_prog').value.trim().toUpperCase();
+    const hidden = document.getElementById('grp_stream_id');
+    const status = document.getElementById('grpStreamStatus');
+
+    if (!year || !prog) { hidden.value = ''; status.innerHTML = ''; return; }
+
+    const key = year + ' ' + prog;
+    if (streamMap[key] !== undefined) {
+        hidden.value    = streamMap[key];
+        status.innerHTML = '<span style="color:var(--green-primary);font-weight:600;">'
+                         + '<i class="bi bi-check-circle"></i> ' + key + '</span>';
+    } else {
+        hidden.value    = '';
+        status.innerHTML = '<span style="color:#e53e3e;">'
+                         + '<i class="bi bi-exclamation-circle"></i> Not found</span>';
+    }
+}
+
+function validateGroupStream(e) {
+    if (!document.getElementById('grp_stream_id').value) {
+        e.preventDefault();
+        document.getElementById('grp_year').style.borderColor = '#e53e3e';
+        document.getElementById('grp_prog').style.borderColor = '#e53e3e';
+        return false;
+    }
+    return true;
+}
+
+// ── Group → stream data for student auto-fill ─────────────────────────────────
+// Build a map of group_id → { year, prog } from the groups rendered on this page
+const groupStreamData = {
+    {% for group in groups %}
+    {{ group.id }}: {
+        year: '{{ group.stream.name.split(" ")[0] }}',
+        prog: '{{ group.stream.name.split(" ")[1] if group.stream.name.split(" ")|length > 1 else "" }}'
+    },
+    {% endfor %}
+};
+
 // Close all suggestion lists when clicking outside
 document.addEventListener('click', function(e) {
     document.querySelectorAll('[id^="sres-"]').forEach(function(el) {
@@ -261,16 +533,18 @@ document.addEventListener('click', function(e) {
 // Handle HTMX response — render suggestion rows from JSON
 document.addEventListener('htmx:afterRequest', function(e) {
     const input = e.detail.elt;
-    if (!input.id || !input.id.startsWith('stxt-')) return;
-    const groupId = input.id.replace('stxt-', '');
-    const resList = document.getElementById('sres-' + groupId);
+    const isGroup  = input.id && input.id.startsWith('stxt-') && input.id !== 'stxt-hit400';
+    const isHit400 = input.id === 'stxt-hit400';
+    if (!isGroup && !isHit400) return;
+
+    const key     = isHit400 ? 'hit400' : input.id.replace('stxt-', '');
+    const resList = document.getElementById('sres-' + key);
     if (!resList) return;
 
     try {
         const data = JSON.parse(e.detail.xhr.responseText);
         const q    = input.value.trim().toLowerCase();
 
-        // Filter by what's typed
         const filtered = q
             ? data.filter(s => s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q))
             : data;
@@ -282,7 +556,7 @@ document.addEventListener('htmx:afterRequest', function(e) {
                 return `<div class="student-suggestion"
                              data-id="${s.id}"
                              data-name="${s.name}"
-                             data-group="${groupId}"
+                             data-key="${key}"
                              style="padding:0.65rem 1rem;font-size:0.88rem;cursor:pointer;
                                     border-bottom:1px solid var(--border);display:flex;
                                     align-items:center;gap:0.6rem;transition:background 0.1s;"
@@ -302,19 +576,19 @@ document.addEventListener('htmx:afterRequest', function(e) {
         }
         resList.style.display = 'block';
     } catch(err) {
-        // Not JSON — ignore (endpoint returned plain HTML on error)
+        // Not JSON — ignore
     }
 });
 
-// Handle clicking a suggestion
+// Handle clicking a suggestion (works for both HIT200 groups and HIT400)
 document.addEventListener('click', function(e) {
     const row = e.target.closest('.student-suggestion');
     if (!row) return;
-    const groupId = row.dataset.group;
-    document.getElementById('sid-'  + groupId).value = row.dataset.id;
-    document.getElementById('stxt-' + groupId).value = row.dataset.name;
-    document.getElementById('stxt-' + groupId).style.borderColor = 'var(--green-mid)';
-    document.getElementById('sres-' + groupId).style.display = 'none';
+    const key = row.dataset.key;
+    document.getElementById('sid-'  + key).value = row.dataset.id;
+    document.getElementById('stxt-' + key).value = row.dataset.name;
+    document.getElementById('stxt-' + key).style.borderColor = 'var(--green-mid)';
+    document.getElementById('sres-' + key).style.display = 'none';
 });
 </script>
 {% endblock %}

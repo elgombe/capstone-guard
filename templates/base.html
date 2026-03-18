@@ -170,7 +170,8 @@
             transition: border-color 0.15s, background 0.15s;
         }
 
-        .nav-dropdown-trigger:hover { border-color: var(--gold); background: rgba(255,184,28,0.15); }
+        .nav-dropdown-trigger:hover,
+        .nav-dropdown-trigger.is-open { border-color: var(--gold); background: rgba(255,184,28,0.15); }
 
         .nav-dropdown-menu {
             display: none;
@@ -183,9 +184,19 @@
             min-width: 170px;
             padding: 0.4rem;
             z-index: 200;
+            /* Invisible bridge fills the gap so mouse can travel from trigger to menu */
+            margin-top: 0;
         }
 
-        .nav-dropdown:hover .nav-dropdown-menu { display: block; }
+        /* Pseudo-element fills the 6px gap between trigger and menu */
+        .nav-dropdown-menu::before {
+            content: '';
+            position: absolute;
+            top: -8px; left: 0; right: 0;
+            height: 8px;
+        }
+
+        .nav-dropdown-menu.is-open { display: block; }
 
         .nav-dropdown-item {
             display: flex; align-items: center; gap: 8px;
@@ -857,9 +868,11 @@
                 <span class="notif-badge">{{ unread_count }}</span>
                 {% endif %}
             </a>
+            {% if session.user_role == 'student' %}
             <a class="nav-btn-primary" href="{{ url_for('projects.new_project') }}">
                 <i class="bi bi-plus-lg"></i> New Project
             </a>
+            {% endif %}
 
             <div class="nav-dropdown">
                 <button class="nav-dropdown-trigger">
@@ -1148,6 +1161,31 @@
         document.addEventListener('htmx:afterSwap', (e) => init(e.detail.elt));
 
         return { init };
+    })();
+    </script>
+    <script>
+    // ── Nav user dropdown — click toggle ─────────────────────────────────────
+    (function () {
+        const trigger = document.querySelector('.nav-dropdown-trigger');
+        const menu    = document.querySelector('.nav-dropdown-menu');
+        if (!trigger || !menu) return;
+
+        trigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const open = menu.classList.toggle('is-open');
+            trigger.classList.toggle('is-open', open);
+        });
+
+        // Close when clicking anywhere outside
+        document.addEventListener('click', function () {
+            menu.classList.remove('is-open');
+            trigger.classList.remove('is-open');
+        });
+
+        // Prevent clicks inside the menu from closing it
+        menu.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
     })();
     </script>
 </body>

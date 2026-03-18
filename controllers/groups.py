@@ -37,9 +37,47 @@ def my_groups():
         .order_by(User.full_name).all()
     supervisors_list = User.query.filter_by(role=UserRole.SUPERVISOR, is_active=True)\
         .order_by(User.full_name).all()
+
+    # HIT400: students this supervisor manages (or all assigned if admin)
+    if user.role == UserRole.ADMIN:
+        hit400_students = User.query.filter(
+            User.role == UserRole.STUDENT,
+            User.is_active == True,
+            User.supervisor_id.isnot(None)
+        ).order_by(User.full_name).all()
+    else:
+        hit400_students = User.query.filter_by(
+            role=UserRole.STUDENT, is_active=True, supervisor_id=user.id
+        ).order_by(User.full_name).all()
+
+    # Students available for HIT400: no supervisor AND not in any HIT200 group
+    from models.db import group_members as gm_table
+    students_in_groups = db.session.query(gm_table.c.student_id).subquery()
+    unassigned_students = User.query.filter(
+        User.role == UserRole.STUDENT,
+        User.is_active == True,
+        User.supervisor_id.is_(None),
+        ~User.id.in_(students_in_groups)
+    ).order_by(User.full_name).all()
+
+    # Build stream_map for JS: { "YEAR PROG": stream_id }
+    stream_map = {s.name: s.id for s in streams}
+
+    # Pre-fetch each HIT400 student's project so the template doesn't need to
+    # iterate a dynamic relationship with a fragile namespace workaround
+    from models.db import ProjectCategory
+    hit400_projects = {}
+    for s in hit400_students:
+        proj = s.projects.filter_by(category=ProjectCategory.HIT400).first()
+        hit400_projects[s.id] = proj
+
     return render_template('groups.html',
                            groups=groups, streams=streams, students=students,
-                           supervisors_list=supervisors_list, user=user)
+                           supervisors_list=supervisors_list,
+                           stream_map=stream_map,
+                           hit400_students=hit400_students,
+                           hit400_projects=hit400_projects,
+                           unassigned_students=unassigned_students, user=user)
 
 
 @groups_bp.route('/groups/create', methods=['POST'])
@@ -117,6 +155,17 @@ def add_member(group_id):
         flash(f'{student.full_name} is already in this group.', 'warning')
         return redirect(url_for('groups_bp.my_groups'))
 
+    # Mutual exclusion: student cannot be in HIT200 if already assigned HIT400
+    if student.supervisor_id:
+        sup = User.query.get(student.supervisor_id)
+        flash(
+            f'{student.full_name} is already assigned to a HIT400 supervisor '
+            f'({sup.full_name if sup else "unknown"}). '
+            f'Remove the HIT400 assignment first.',
+            'danger'
+        )
+        return redirect(url_for('groups_bp.my_groups'))
+
     group.members.append(student)
     db.session.commit()
     flash(f'{student.full_name} added to "{group.name}".', 'success')
@@ -143,6 +192,113 @@ def remove_member(group_id, student_id):
     return redirect(url_for('groups_bp.my_groups'))
 
 
+# ── HIT400 STUDENT MANAGEMENT ────────────────────────────────────────────────
+
+@groups_bp.route('/hit400/students/add', methods=['POST'])
+@login_required
+@supervisor_required
+def add_hit400_student():
+    """Supervisor assigns themselves as supervisor for a HIT400 student."""
+    user       = get_current_user()
+    student_id = request.form.get('student_id', type=int)
+
+    if not student_id:
+        flash('No student selected.', 'danger')
+        return redirect(url_for('groups_bp.my_groups'))
+
+    student = User.query.get_or_404(student_id)
+
+    if student.role != UserRole.STUDENT:
+        flash('Only students can be assigned to a supervisor.', 'danger')
+        return redirect(url_for('groups_bp.my_groups'))
+
+    # Mutual exclusion: student cannot be assigned HIT400 if already in a HIT200 group
+    if student.groups:
+        group_names = ', '.join(g.name for g in student.groups)
+        flash(
+            f'{student.full_name} is already in HIT200 group(s): {group_names}. '
+            f'Remove them from the group first.',
+            'danger'
+        )
+        return redirect(url_for('groups_bp.my_groups'))
+
+    if student.supervisor_id:
+        existing_sup = User.query.get(student.supervisor_id)
+        flash(f'{student.full_name} already has a HIT400 supervisor '
+              f'({existing_sup.full_name if existing_sup else "unknown"}).', 'warning')
+        return redirect(url_for('groups_bp.my_groups'))
+
+    # Admin can assign to any supervisor; supervisor assigns to themselves
+    if user.role == UserRole.ADMIN:
+        supervisor_id = request.form.get('supervisor_id', type=int) or user.id
+    else:
+        supervisor_id = user.id
+
+    student.supervisor_id = supervisor_id
+    db.session.commit()
+
+    assigned_to = User.query.get(supervisor_id)
+    flash(f'{student.full_name} assigned to {assigned_to.full_name} as HIT400 supervisor.', 'success')
+    return redirect(url_for('groups_bp.my_groups'))
+
+
+@groups_bp.route('/hit400/students/<int:student_id>/remove', methods=['POST'])
+@login_required
+@supervisor_required
+def remove_hit400_student(student_id):
+    """Supervisor removes a HIT400 student from their supervision."""
+    user    = get_current_user()
+    student = User.query.get_or_404(student_id)
+
+    # Only the assigned supervisor or admin can remove
+    if user.role != UserRole.ADMIN and student.supervisor_id != user.id:
+        flash('You can only remove students assigned to you.', 'danger')
+        return redirect(url_for('groups_bp.my_groups'))
+
+    student.supervisor_id = None
+    db.session.commit()
+    flash(f'{student.full_name} removed from your HIT400 supervision.', 'success')
+    return redirect(url_for('groups_bp.my_groups'))
+
+
+# ── API: unassigned students for HIT400 search autocomplete ──────────────────
+
+@groups_bp.route('/hit400/available-students')
+@login_required
+@supervisor_required
+def available_hit400_students():
+    """HTMX: return students not yet assigned to any supervisor, filtered by search query."""
+    from flask import jsonify
+
+    search = request.args.get('stxt-hit400', '').strip()
+    if not search:
+        search = request.args.get('search', '').strip()
+
+    # Exclude students already in any HIT200 group
+    from models.db import group_members
+    students_in_groups = db.session.query(group_members.c.student_id).subquery()
+
+    query = User.query.filter(
+        User.role == UserRole.STUDENT,
+        User.is_active == True,
+        User.supervisor_id.is_(None),           # not already HIT400
+        ~User.id.in_(students_in_groups)        # not already HIT200
+    )
+
+    if search:
+        query = query.filter(
+            (User.full_name.ilike(f'%{search}%')) |
+            (User.email.ilike(f'%{search}%'))
+        )
+
+    students = query.order_by(User.full_name).all()
+
+    return jsonify([
+        {'id': s.id, 'name': s.full_name, 'email': s.email}
+        for s in students
+    ])
+
+
 # ── API: students not yet in a group (for dropdown) ──────────────────────────
 
 @groups_bp.route('/groups/<int:group_id>/available-students')
@@ -157,6 +313,7 @@ def available_students(group_id):
     query = User.query.filter(
         User.role == UserRole.STUDENT,
         User.is_active == True,
+        User.supervisor_id.is_(None),   # exclude HIT400-assigned students
         ~User.id.in_(existing_ids) if existing_ids else db.true()
     )
 

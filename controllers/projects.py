@@ -112,8 +112,14 @@ def projects():
 @projects_bp.route('/projects/new', methods=['GET', 'POST'])
 @login_required
 def new_project():
-    """Submit a new project."""
-    user   = get_current_user()
+    """Submit a new project. Students only."""
+    user = get_current_user()
+
+    # Only students may submit projects
+    if user.role != UserRole.STUDENT:
+        flash('Only students can submit projects.', 'danger')
+        return redirect(url_for('dashboard.dash'))
+
     groups = _get_user_groups(user)
 
     # ── Guard: if student's group already has a project, redirect there ──────
@@ -173,6 +179,21 @@ def new_project():
                 return redirect(url_for('projects.project_detail',
                                         project_id=existing.id))
 
+        # HIT400: student must have an assigned supervisor
+        if category == ProjectCategory.HIT400:
+            if not user.supervisor_id:
+                flash(
+                    'You do not have an assigned supervisor. '
+                    'Please contact the administrator to be assigned one before submitting.',
+                    'danger'
+                )
+                programs   = _get_programs()
+                stream_map = _get_stream_map()
+                return render_template('new_project.html', programs=programs,
+                                       stream_map=stream_map, groups=groups,
+                                       user_in_group=len(groups) > 0,
+                                       no_supervisor=True)
+
         project = Project(
             title=title,
             description=description,
@@ -229,12 +250,17 @@ def new_project():
         return redirect(url_for('projects.project_detail', project_id=project.id))
 
     # GET
-    programs   = _get_programs()
-    stream_map = _get_stream_map()
+    programs      = _get_programs()
+    stream_map    = _get_stream_map()
     user_in_group = len(groups) > 0
+    no_supervisor = (user.role == UserRole.STUDENT
+                     and not user.supervisor_id
+                     and not user_in_group)
     return render_template('new_project.html', programs=programs,
                            stream_map=stream_map, groups=groups,
-                           user_in_group=user_in_group)
+                           user_in_group=user_in_group,
+                           no_supervisor=no_supervisor,
+                           student_supervisor=user.supervisor if user.supervisor_id else None)
 
 
 @projects_bp.route('/projects/<int:project_id>')
@@ -271,10 +297,16 @@ def project_detail(project_id):
         and project.group
         and project.group.supervisor_id == user.id
     )
+    is_hit400_supervisor = (
+        project.category == ProjectCategory.HIT400
+        and user.role == UserRole.SUPERVISOR
+        and project.author.supervisor_id == user.id
+    )
     can_access_chapters = (
         user.id == project.user_id
         or is_group_member
         or is_group_supervisor
+        or is_hit400_supervisor
         or user.role in [UserRole.ADMIN, UserRole.REVIEWER]
     )
 
@@ -349,12 +381,15 @@ def update_project_status(project_id):
     new_status   = request.form.get('status', '')
     review_notes = request.form.get('review_notes', '')
 
-    # Supervisors may only update projects in their group (HIT200)
-    # or any project (HIT400) — admins/reviewers can update anything
+    # Supervisors may only update their own students/groups
     if user.role == UserRole.SUPERVISOR:
         if project.category == ProjectCategory.HIT200:
             if not project.group or project.group.supervisor_id != user.id:
                 flash('You can only review projects assigned to your group.', 'danger')
+                return redirect(url_for('projects.project_detail', project_id=project_id))
+        elif project.category == ProjectCategory.HIT400:
+            if project.author.supervisor_id != user.id:
+                flash('You can only review projects of students assigned to you.', 'danger')
                 return redirect(url_for('projects.project_detail', project_id=project_id))
 
     try:
