@@ -4,3 +4,4 @@ flask-migrate
 google-genai
 numpy
 python-dotenv
+authlib
